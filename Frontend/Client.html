@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+            .section h2 {
+                margin-bottom: 10px;
+            }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, button {
+            padding: 8px;
+            margin-bottom: 10px;
+            display: block;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #0056b3;
+            }
+
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Client Management System</h1>
+
+    <!-- Register a New Client -->
+    <div class="section">
+        <h2>Register a New Client</h2>
+        <form id="registerForm">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" name="firstName" required>
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" name="lastName" required>
+            <label for="address">Address:</label>
+            <input type="text" id="address" name="address" required>
+            <button type="submit">Register</button>
+        </form>
+        <div id="registerResult" class="result"></div>
+    </div>
+
+    <!-- Submit a New Request -->
+    <div class="section">
+        <h2>Submit a New Request</h2>
+        <form id="requestForm">
+            <label for="clientId">Client ID:</label>
+            <input type="number" id="clientId" name="clientId" required>
+            <label for="propertyAddress">Property Address:</label>
+            <input type="text" id="propertyAddress" name="propertyAddress" required>
+            <label for="squareFeet">Square Feet:</label>
+            <input type="number" id="squareFeet" name="squareFeet">
+            <label for="proposedPrice">Proposed Price:</label>
+            <input type="number" id="proposedPrice" name="proposedPrice">
+            <label for="note">Note:</label>
+            <input type="text" id="note" name="note">
+            <button type="submit">Submit Request</button>
+        </form>
+        <div id="requestResult" class="result"></div>
+    </div>
+
+    <!-- Lookup Requests by Address -->
+    <div class="section">
+        <h2>Lookup Requests by Address</h2>
+        <form id="lookupForm">
+            <label for="lookupAddress">Address:</label>
+            <input type="text" id="lookupAddress" name="address" required>
+            <button type="submit">Lookup</button>
+        </form>
+        <div id="lookupResult" class="result"></div>
+    </div>
+
+    <!-- Submit a Quote -->
+    <div class="section">
+        <h2>Submit a Quote</h2>
+        <form id="quoteForm">
+            <label for="requestId">Request ID:</label>
+            <input type="number" id="requestId" name="requestId" required>
+            <label for="initialPrice">Initial Price:</label>
+            <input type="number" id="initialPrice" name="initialPrice" required>
+            <label for="proposedPrice">Proposed Price:</label>
+            <input type="number" id="proposedPrice" name="proposedPrice" required>
+            <label for="workStartDate">Work Start Date:</label>
+            <input type="date" id="workStartDate" name="workStartDate" required>
+            <label for="workEndDate">Work End Date:</label>
+            <input type="date" id="workEndDate" name="workEndDate" required>
+            <button type="submit">Submit Quote</button>
+        </form>
+        <div id="quoteResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5050';
+
+        // Register a New Client
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const address = document.getElementById('address').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, lastName, address }),
+                });
+                const result = await response.json();
+                document.getElementById('registerResult').textContent = JSON.stringify(result);
+            } catch (error) {
+                document.getElementById('registerResult').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Submit a New Request
+        document.getElementById('requestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const clientId = document.getElementById('clientId').value;
+            const propertyAddress = document.getElementById('propertyAddress').value;
+            const squareFeet = document.getElementById('squareFeet').value;
+            const proposedPrice = document.getElementById('proposedPrice').value;
+            const note = document.getElementById('note').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/submit-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clientId, propertyAddress, squareFeet, proposedPrice, note }),
+                });
+                const result = await response.json();
+                document.getElementById('requestResult').textContent = JSON.stringify(result);
+            } catch (error) {
+                document.getElementById('requestResult').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Lookup Requests by Address
+        document.getElementById('lookupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const address = document.getElementById('lookupAddress').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/lookup?address=${encodeURIComponent(address)}`);
+                const result = await response.json();
+                document.getElementById('lookupResult').textContent = JSON.stringify(result);
+            } catch (error) {
+                document.getElementById('lookupResult').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Submit a Quote
+        document.getElementById('quoteForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const requestId = document.getElementById('requestId').value;
+            const initialPrice = document.getElementById('initialPrice').value;
+            const proposedPrice = document.getElementById('proposedPrice').value;
+            const workStartDate = document.getElementById('workStartDate').value;
+            const workEndDate = document.getElementById('workEndDate').value;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/submit-quote`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requestId, initialPrice, proposedPrice, workStartDate, workEndDate }),
+                });
+                const result = await response.json();
+                document.getElementById('quoteResult').textContent = JSON.stringify(result);
+            } catch (error) {
+                document.getElementById('quoteResult').textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
