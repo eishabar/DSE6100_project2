@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tabs button {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .tabs button.active {
+            border-bottom: 2px solid #007bff;
+            color: #007bff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #f4f4f4;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .filters input, .filters select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button.action {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        button.action:hover {
+            background-color: #0056b3;
+        }
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 8px;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .modal-content input, .modal-content textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-actions button {
+            padding: 8px 12px;
+        }
+
+        .modal-close {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+        }
+
+        .modal-close:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Contractor Management</h1>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="requests">Requests</button>
+            <button class="tab-btn" data-tab="quotes">Quotes</button>
+            <button class="tab-btn" data-tab="orders">Orders</button>
+            <button class="tab-btn" data-tab="bills">Bills</button>
+            <button class="tab-btn" data-tab="reports">Reports</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div id="requests" class="tab-content active">
+            <h2>Requests</h2>
+            <div class="filters">
+                <input type="text" placeholder="Search by Address">
+                <select>
+                    <option value="">All Statuses</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <button class="action">Filter</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Client Name</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>John Doe</td>
+                        <td>123 Main St</td>
+                        <td>Submitted</td>
+                        <td>
+                            <button class="action" onclick="openModal('requestDetails')">Details</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Additional Tabs for Quotes, Orders, Bills, Reports -->
+        <!-- Similar structure as the Requests tab -->
+    </div>
+
+    <!-- Quotes Tab -->
+    <div id="quotes" class="tab-content">
+        <h2>Quotes</h2>
+        <div class="filters">
+            <input type="text" placeholder="Search by Request ID">
+            <select>
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Accepted</option>
+                <option value="declined">Declined</option>
+            </select>
+            <button class="action">Filter</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Quote ID</th>
+                    <th>Request ID</th>
+                    <th>Initial Price</th>
+                    <th>Proposed Price</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>101</td>
+                    <td>1</td>
+                    <td>$5,000</td>
+                    <td>$4,800</td>
+                    <td>Pending</td>
+                    <td>
+                        <button class="action" onclick="openModal('quoteDetails')">Details</button>
+                        <button class="action">Negotiate</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Orders Tab -->
+    <div id="orders" class="tab-content">
+        <h2>Orders</h2>
+        <div class="filters">
+            <input type="text" placeholder="Search by Order ID">
+            <select>
+                <option value="">All Statuses</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+            </select>
+            <button class="action">Filter</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Quote ID</th>
+                    <th>Status</th>
+                    <th>Order Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>201</td>
+                    <td>101</td>
+                    <td>In Progress</td>
+                    <td>2024-01-01</td>
+                    <td>
+                        <button class="action" onclick="openModal('orderDetails')">Details</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Bills Tab -->
+    <div id="bills" class="tab-content">
+        <h2>Bills</h2>
+        <div class="filters">
+            <input type="text" placeholder="Search by Order ID">
+            <select>
+                <option value="">All Statuses</option>
+                <option value="paid">Paid</option>
+                <option value="due">Due</option>
+            </select>
+            <button class="action">Filter</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Bill ID</th>
+                    <th>Order ID</th>
+                    <th>Initial Amount</th>
+                    <th>Final Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>301</td>
+                    <td>201</td>
+                    <td>$4,800</td>
+                    <td>$4,500</td>
+                    <td>Due</td>
+                    <td>
+                        <button class="action" onclick="openModal('billDetails')">Details</button>
+                        <button class="action">Negotiate</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Reports Tab -->
+    <div id="reports" class="tab-content">
+        <h2>Reports</h2>
+        <div class="filters">
+            <input type="text" placeholder="Search by Date Range">
+            <button class="action">Generate Report</button>
+        </div>
+        <p>Reports section will display downloadable performance summaries.</p>
+    </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="requestDetails" class="modal">
+        <div class="modal-header">Request Details</div>
+        <div class="modal-content">
+            <p>Details of the request will be displayed here.</p>
+            <!-- Additional form inputs or content -->
+        </div>
+        <div class="modal-actions">
+            <button class="modal-close" onclick="closeModal('requestDetails')">Close</button>
+        </div>
+    </div>
+    <div id="quoteDetails" class="modal">
+        <div class="modal-header">Quote Details</div>
+        <div class="modal-content">
+            <p>Details of the selected quote will appear here.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-close" onclick="closeModal('quoteDetails')">Close</button>
+        </div>
+    </div>
+
+    <div id="orderDetails" class="modal">
+        <div class="modal-header">Order Details</div>
+        <div class="modal-content">
+            <p>Details of the selected order will appear here.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-close" onclick="closeModal('orderDetails')">Close</button>
+        </div>
+    </div>
+
+    <div id="billDetails" class="modal">
+        <div class="modal-header">Bill Details</div>
+        <div class="modal-content">
+            <p>Details of the selected bill will appear here.</p>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-close" onclick="closeModal('billDetails')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const modals = document.querySelectorAll('.modal');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+            });
+        });
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+    </script>
+</body>
+</html>
