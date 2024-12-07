@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driveway Sealing</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Driveway Sealing Management</h1>
+    </header>
+
+    <nav>
+        <button onclick="showSection('clientRegistration')">Client Registration</button>
+        <button onclick="showSection('submitRequest')">Submit Request</button>
+        <button onclick="showSection('clientDashboard')">Client Dashboard</button>
+        <button onclick="showSection('davidDashboard')">David Smith Dashboard</button>
+    </nav>
+
+    <main>
+        <!-- Client Registration Section -->
+        <section id="clientRegistration" class="hidden">
+            <h2>Client Registration</h2>
+            <form id="registrationForm">
+                <input type="text" id="firstName" placeholder="First Name" required>
+                <input type="text" id="lastName" placeholder="Last Name" required>
+                <input type="text" id="phoneNumber" placeholder="Phone Number" required>
+                <input type="text" id="creditCard" placeholder="Credit Card Number" required>
+                <input type="date" id="expirationDate" placeholder="Expiration Date" required>
+                <input type="text" id="securityCode" placeholder="Security Code" required>
+                <textarea id="address" placeholder="Address" required></textarea>
+                <input type="email" id="email" placeholder="Email" required>
+                <button type="submit">Register</button>
+            </form>
+        </section>
+
+        <!-- Submit Request Section -->
+        <section id="submitRequest" class="hidden">
+            <h2>Submit Request</h2>
+            <form id="requestForm">
+                <input type="number" id="clientId" placeholder="Client ID" required>
+                <textarea id="propertyAddress" placeholder="Property Address" required></textarea>
+                <input type="number" id="squareFeet" placeholder="Square Feet" required>
+                <input type="number" step="0.01" id="proposedPrice" placeholder="Proposed Price" required>
+                <textarea id="note" placeholder="Additional Notes"></textarea>
+                <textarea id="imageUrls" placeholder="Paste Image URLs (one per line)" required></textarea>
+                <button type="submit">Submit Request</button>
+            </form>            
+        </section>
+
+        <!-- Client Dashboard Section -->
+        <section id="clientDashboard" class="hidden">
+            <h2>Client Dashboard</h2>
+            <form id="dashboardForm">
+                <input type="number" id="dashboardClientId" placeholder="Client ID" required>
+                <button type="submit">View Dashboard</button>
+            </form>
+            <div id="dashboardResults"></div>
+        </section>
+
+        <!-- David Smith Dashboard Section -->
+        <section id="davidDashboard" class="hidden">
+            <h2>David Smith Dashboard</h2>
+            <div class="dashboard-buttons">
+                <button onclick="fetchBigClients()">View Big Clients</button>
+                <button onclick="fetchDifficultClients()">View Difficult Clients</button>
+                <button onclick="fetchThisMonthQuotes()">Quotes This Month</button>
+                <button onclick="fetchProspectiveClients()">Prospective Clients</button>
+                <button onclick="fetchLargestDriveway()">Largest Driveway</button>
+                <button onclick="fetchOverdueBills()">Overdue Bills</button>
+                <button onclick="fetchBadClients()">Bad Clients</button>
+                <button onclick="fetchGoodClients()">Good Clients</button>
+                <button onclick="fetchIncomingRequests()">View Incoming Requests</button>
+                <button onclick="fetchNegotiationHistory()">View Negotiation History</button>
+            </div>
+            <div id="davidResults"></div>
+            <div id="incomingRequests"></div>
+            <div id="negotiationHistory"></div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

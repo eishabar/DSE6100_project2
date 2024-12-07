@@ -10,193 +10,211 @@
             margin: 20px;
         }
 
-        .section {
-            margin-bottom: 30px;
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
         }
 
-            .section h2 {
-                margin-bottom: 10px;
+        h1, h2 {
+            text-align: center;
+        }
+
+        .menu, .form-section, .lookup-section, .history-section, .new-request-section {
+            margin: 20px 0;
+            display: none;
+        }
+
+            .menu.active, .form-section.active, .lookup-section.active, .history-section.active, .new-request-section.active {
+                display: block;
             }
+
+            .menu button {
+                width: 100%;
+                padding: 15px;
+                margin: 10px 0;
+                font-size: 18px;
+                background-color: #007bff;
+                color: #fff;
+                border: none;
+                cursor: pointer;
+            }
+
+                .menu button:hover {
+                    background-color: #0056b3;
+                }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin: 10px 0 5px;
         }
 
-        input, button {
-            padding: 8px;
-            margin-bottom: 10px;
-            display: block;
+        input, textarea, button {
             width: 100%;
-            max-width: 300px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
 
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
+        textarea {
+            resize: none;
+            height: 80px;
         }
 
-            button:hover {
-                background-color: #0056b3;
+        .back-btn {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+            .back-btn:hover {
+                background-color: #5a6268;
             }
 
-        .result {
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 10px;
-            padding: 10px;
+        }
+
+            table th, table td {
+                padding: 10px;
+                border: 1px solid #ddd;
+                text-align: left;
+            }
+
+            table th {
+                background-color: #f4f4f4;
+            }
+
+        .simulated-chat-history {
+            margin-top: 20px;
             background-color: #f9f9f9;
+            padding: 15px;
             border: 1px solid #ddd;
         }
+
+            .simulated-chat-history p {
+                font-size: 16px;
+                color: #333;
+            }
+
+        /* Style for the row with two buttons */
+        .two-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+            .two-buttons button {
+                width: 48%;
+            }
     </style>
 </head>
 <body>
-    <h1>Client Management System</h1>
+    <div class="container">
+        <h1>Client Management System</h1>
 
-    <!-- Register a New Client -->
-    <div class="section">
-        <h2>Register a New Client</h2>
-        <form id="registerForm">
-            <label for="firstName">First Name:</label>
-            <input type="text" id="firstName" name="firstName" required>
-            <label for="lastName">Last Name:</label>
-            <input type="text" id="lastName" name="lastName" required>
-            <label for="address">Address:</label>
-            <input type="text" id="address" name="address" required>
-            <button type="submit">Register</button>
-        </form>
-        <div id="registerResult" class="result"></div>
+        <!-- Main Menu -->
+        <div class="menu active">
+            <button id="registerClientBtn">Register Client</button>
+            <div class="two-buttons">
+                <button id="newRequestBtn">New Request</button>
+                <button id="lookupStatusBtn">Lookup Status</button>
+            </div>
+        </div>
+
+        <!-- Register Client Form -->
+        <div class="form-section" id="registerClientForm">
+            <h2>Register Client</h2>
+            <form id="registerForm">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" name="firstName" required>
+
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" name="lastName" required>
+
+                <label for="address">Address</label>
+                <input type="text" id="address" name="address" required>
+
+                <label for="creditCard">Credit Card Number</label>
+                <input type="text" id="credit_card_number" name="creditCardNumber" required>
+
+                <label for="expirationDate">Expiration Date</label>
+                <input type="date" id="expirationDate" name="expirationDate" required>
+
+                <label for="securityCode">Security Code</label>
+                <input type="number" id="securityCode" name="securityCode" required>
+
+                <label for="phoneNumber">Phone Number</label>
+                <input type="number" id="phoneNumber" name="phoneNumber" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+
+
+                <button type="submit">Register</button>
+            </form>
+            <button class="back-btn" id="backToMenuFromRegister">Back to Menu</button>
+        </div>
+
+        <!-- Lookup Status Section -->
+        <div class="lookup-section" id="lookupStatusPage">
+            <h2>Lookup Status</h2>
+            <p>Enter the phone number to view the request history:</p>
+
+            <!-- Lookup Form -->
+            <div id="formSection">
+                <form id="lookupForm">
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="number" id="phoneNumber" name="phoneNumber" required>
+
+                        
+                    </div>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+
+            <!-- Simulated Chat History Section -->
+            <div class="simulated-chat-history" id="simulatedChatHistory" style="display: none;">
+                <p>No records found for the searched address. Here's a simulated chat history:</p>
+                <p><strong>Chat 1:</strong> The request has been processed.</p>
+                <p><strong>Chat 2:</strong> Waiting for approval from management.</p>
+                <p><strong>Chat 3:</strong> The request has been completed successfully.</p>
+            </div>
+
+            <button class="back-btn" id="backToMenuFromLookup">Back to Menu</button>
+        </div>
+
+        <!-- New Request Section -->
+        <div class="new-request-section" id="newRequestPage">
+            <h2>New Request</h2>
+            <form id="requestForm">
+                <label for="clientId">Client ID</label>
+                <input type="number" id="clientId" name="clientId" required>
+
+                <label for="propertyAddress">Property Address</label>
+                <input type="text" id="propertyAddress" name="propertyAddress" required>
+
+                <label for="squareFeet">Square Feet</label>
+                <input type="number" id="squareFeet" name="squareFeet" required>
+
+                <label for="proposedPrice">Proposed Price</label>
+                <input type="number" id="proposedPrice" name="proposedPrice" required>
+
+                <label for="note">Note (Optional)</label>
+                <textarea id="note" name="note"></textarea>
+
+                <label for="imageUrls">Paste Image URLs (one per line)</label>
+                <textarea id="imageUrls" name="imageUrls" required></textarea>
+
+                <button type="submit">Submit Request</button>
+            </form>
+            <button class="back-btn" id="backToMenuFromNewRequest">Back to Menu</button>
+        </div>
     </div>
 
-    <!-- Submit a New Request -->
-    <div class="section">
-        <h2>Submit a New Request</h2>
-        <form id="requestForm">
-            <label for="clientId">Client ID:</label>
-            <input type="number" id="clientId" name="clientId" required>
-            <label for="propertyAddress">Property Address:</label>
-            <input type="text" id="propertyAddress" name="propertyAddress" required>
-            <label for="squareFeet">Square Feet:</label>
-            <input type="number" id="squareFeet" name="squareFeet">
-            <label for="proposedPrice">Proposed Price:</label>
-            <input type="number" id="proposedPrice" name="proposedPrice">
-            <label for="note">Note:</label>
-            <input type="text" id="note" name="note">
-            <button type="submit">Submit Request</button>
-        </form>
-        <div id="requestResult" class="result"></div>
-    </div>
+<script src="app.js"></script>
 
-    <!-- Lookup Requests by Address -->
-    <div class="section">
-        <h2>Lookup Requests by Address</h2>
-        <form id="lookupForm">
-            <label for="lookupAddress">Address:</label>
-            <input type="text" id="lookupAddress" name="address" required>
-            <button type="submit">Lookup</button>
-        </form>
-        <div id="lookupResult" class="result"></div>
-    </div>
-
-    <!-- Submit a Quote -->
-    <div class="section">
-        <h2>Submit a Quote</h2>
-        <form id="quoteForm">
-            <label for="requestId">Request ID:</label>
-            <input type="number" id="requestId" name="requestId" required>
-            <label for="initialPrice">Initial Price:</label>
-            <input type="number" id="initialPrice" name="initialPrice" required>
-            <label for="proposedPrice">Proposed Price:</label>
-            <input type="number" id="proposedPrice" name="proposedPrice" required>
-            <label for="workStartDate">Work Start Date:</label>
-            <input type="date" id="workStartDate" name="workStartDate" required>
-            <label for="workEndDate">Work End Date:</label>
-            <input type="date" id="workEndDate" name="workEndDate" required>
-            <button type="submit">Submit Quote</button>
-        </form>
-        <div id="quoteResult" class="result"></div>
-    </div>
-
-    <script>
-        const API_BASE_URL = 'http://localhost:5050';
-
-        // Register a New Client
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const address = document.getElementById('address').value;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ firstName, lastName, address }),
-                });
-                const result = await response.json();
-                document.getElementById('registerResult').textContent = JSON.stringify(result);
-            } catch (error) {
-                document.getElementById('registerResult').textContent = 'Error: ' + error.message;
-            }
-        });
-
-        // Submit a New Request
-        document.getElementById('requestForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const clientId = document.getElementById('clientId').value;
-            const propertyAddress = document.getElementById('propertyAddress').value;
-            const squareFeet = document.getElementById('squareFeet').value;
-            const proposedPrice = document.getElementById('proposedPrice').value;
-            const note = document.getElementById('note').value;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/submit-request`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ clientId, propertyAddress, squareFeet, proposedPrice, note }),
-                });
-                const result = await response.json();
-                document.getElementById('requestResult').textContent = JSON.stringify(result);
-            } catch (error) {
-                document.getElementById('requestResult').textContent = 'Error: ' + error.message;
-            }
-        });
-
-        // Lookup Requests by Address
-        document.getElementById('lookupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const address = document.getElementById('lookupAddress').value;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/lookup?address=${encodeURIComponent(address)}`);
-                const result = await response.json();
-                document.getElementById('lookupResult').textContent = JSON.stringify(result);
-            } catch (error) {
-                document.getElementById('lookupResult').textContent = 'Error: ' + error.message;
-            }
-        });
-
-        // Submit a Quote
-        document.getElementById('quoteForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const requestId = document.getElementById('requestId').value;
-            const initialPrice = document.getElementById('initialPrice').value;
-            const proposedPrice = document.getElementById('proposedPrice').value;
-            const workStartDate = document.getElementById('workStartDate').value;
-            const workEndDate = document.getElementById('workEndDate').value;
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/submit-quote`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ requestId, initialPrice, proposedPrice, workStartDate, workEndDate }),
-                });
-                const result = await response.json();
-                document.getElementById('quoteResult').textContent = JSON.stringify(result);
-            } catch (error) {
-                document.getElementById('quoteResult').textContent = 'Error: ' + error.message;
-            }
-        });
-    </script>
 </body>
 </html>

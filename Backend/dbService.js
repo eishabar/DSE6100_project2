@@ -24,57 +24,83 @@ class DbService {
         return instance ? instance : new DbService();
     }
 
-    async registerClient(firstName, lastName, address) {
-        const sql = `INSERT INTO Clients (first_name, last_name, address, created_at) VALUES (?, ?, ?, NOW())`;
+    async registerClient(first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email) {
+        const sql = `INSERT INTO Clients (first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email, timestamp) VALUES (?, ?, ?, ? , ? , ? , ? , ? , NOW())`;
         return new Promise((resolve, reject) => {
-            connection.query(sql, [firstName, lastName, address], (err, results) => {
+            connection.query(sql, [first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
             });
         });
     }
 
-    async submitRequest(clientId, propertyAddress, squareFeet, proposedPrice, note) {
+    async submitRequest(client_id, property_address, square_feet, proposed_price, note, image_urls) {
+        return new Promise((resolve, reject) => {
+            const sqlRequest = `
+                INSERT INTO Requests (client_id, property_address, square_feet, proposed_price, note, status, submission_date) 
+                VALUES (?, ?, ?, ?, ?, 'Pending', NOW())`;
+    
+            connection.beginTransaction((err) => {
+                if (err) return reject(err);
+    
+                // Insert the main request
+                connection.query(sqlRequest, [client_id, property_address, square_feet, proposed_price, note], (err, results) => {
+                    if (err) {
+                        return connection.rollback(() => reject(err));
+                    }
+    
+                    const requestId = results.insertId;
+                    const sqlImages = `INSERT INTO Request_Images (request_id, image_url, timestamp) VALUES (?, ?, NOW())`;
+    
+                    // Insert each image URL into the Request_Images table
+                    const imagePromises = image_urls.map((url) =>
+                        new Promise((resolve, reject) => {
+                            connection.query(sqlImages, [requestId, url], (err, results) => {
+                                if (err) reject(err);
+                                resolve(results);
+                            });
+                        })
+                    );
+    
+                    // Commit the transaction if all images are inserted successfully
+                    Promise.all(imagePromises)
+                        .then(() => {
+                            connection.commit((err) => {
+                                if (err) {
+                                    return connection.rollback(() => reject(err));
+                                }
+                                resolve({ requestId });
+                            });
+                        })
+                        .catch((err) => {
+                            connection.rollback(() => reject(err));
+                        });
+                });
+            });
+        });
+    }
+    
+    // Fetch Request History by Phone Number
+    async getRequestHistory(phone_number) {
         const sql = `
-            INSERT INTO Requests 
-            (client_id, property_address, square_feet, proposed_price, note, status, submission_date, created_at) 
-            VALUES (?, ?, ?, ?, ?, 'submitted', NOW(), NOW())
+            SELECT 
+                Clients.client_id, Clients.first_name, Clients.last_name, 
+                Requests.request_id, Requests.property_address, Requests.square_feet, Requests.status, Requests.submission_date
+            FROM Clients
+            LEFT JOIN Requests ON Clients.client_id = Requests.client_id
+            WHERE Clients.phone_number = ?
         `;
         return new Promise((resolve, reject) => {
-            connection.query(sql, [clientId, propertyAddress, squareFeet, proposedPrice, note], (err, results) => {
+            connection.query(sql, [phone_number], (err, results) => {
                 if (err) reject(err);
                 resolve(results);
             });
         });
     }
-
-    async lookupRequestsByAddress(address) {
-        const sql = `
-            SELECT request_id, property_address, status, submission_date, rejection_note 
-            FROM Requests 
-            WHERE property_address = ?
-        `;
-        return new Promise((resolve, reject) => {
-            connection.query(sql, [address], (err, results) => {
-                if (err) reject(err);
-                resolve(results);
-            });
-        });
-    }
-
-    async addQuote(requestId, initialPrice, proposedPrice, workStartDate, workEndDate) {
-        const sql = `
-            INSERT INTO Quotes 
-            (request_id, initial_price, proposed_price, work_start_date, work_end_date, status, last_updated) 
-            VALUES (?, ?, ?, ?, ?, 'pending', NOW())
-        `;
-        return new Promise((resolve, reject) => {
-            connection.query(sql, [requestId, initialPrice, proposedPrice, workStartDate, workEndDate], (err, results) => {
-                if (err) reject(err);
-                resolve(results);
-            });
-        });
-    }
+    
+    
 }
+    
+
 
 module.exports = DbService;

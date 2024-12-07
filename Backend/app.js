@@ -8,22 +8,23 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
+
 
 // Register a new client
-app.post('/register', (req, res) => {
+app.post('/register-client', (req, res) => {
     console.log("Endpoint: register a new client");
     console.log("Request body:", req.body);
 
-    const { firstName, lastName, address } = req.body;
-    if (!firstName || !lastName || !address) {
+    const { first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email } = req.body;
+    if (!first_name || !last_name || !phone_number || !credit_card_number || !expiration_date || !security_code || !address || !email) {
         console.log("Validation error: Missing required fields");
         return res.status(400).json({ error: 'All fields are required: firstName, lastName, address' });
     }
 
     const db = dbService.getDbServiceInstance();
 
-    db.registerClient(firstName, lastName, address)
+    db.registerClient(first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email)
         .then(data => {
             console.log("New client registered with ID:", data.insertId);
             res.status(201).json({ success: true, clientId: data.insertId });
@@ -39,18 +40,19 @@ app.post('/submit-request', (req, res) => {
     console.log("Endpoint: submit a new request");
     console.log("Request body:", req.body);
 
-    const { clientId, propertyAddress, squareFeet, proposedPrice, note } = req.body;
-    if (!clientId || !propertyAddress) {
-        console.log("Validation error: Missing required fields");
-        return res.status(400).json({ error: 'Client ID and property address are required' });
+    const { client_id, property_address, square_feet, proposed_price, note, image_urls } = req.body;
+
+    if (!client_id || !property_address || !Array.isArray(image_urls)) {
+        console.log("Validation error: Missing required fields or invalid image URLs");
+        return res.status(400).json({ error: 'Client ID, property address, and valid image URLs are required' });
     }
 
     const db = dbService.getDbServiceInstance();
 
-    db.submitRequest(clientId, propertyAddress, squareFeet, proposedPrice, note)
+    db.submitRequest(client_id, property_address, square_feet, proposed_price, note, image_urls)
         .then(data => {
-            console.log("Request submitted with ID:", data.insertId);
-            res.status(201).json({ success: true, requestId: data.insertId });
+            console.log("Request submitted with ID:", data.requestId);
+            res.status(201).json({ success: true, requestId: data.requestId });
         })
         .catch(err => {
             console.log("Error in submit-request:", err);
@@ -58,58 +60,55 @@ app.post('/submit-request', (req, res) => {
         });
 });
 
-// Lookup requests by address
-app.get('/lookup', (req, res) => {
-    const { address } = req.query;
-    console.log("Endpoint: lookup requests by address");
-    console.log("Query params:", req.query);
+// Endpoint for Lookup Status
+app.post('/lookup-status', async (req, res) => {
+    const { phone_number } = req.body;
 
-    if (!address) {
-        console.log("Validation error: Address is required");
-        return res.status(400).json({ error: 'Address is required' });
+    if (!phone_number) {
+        return res.status(400).json({ message: 'Phone number is required' });
     }
 
-    const db = dbService.getDbServiceInstance();
+    try {
+        const requestHistory = await dbService.getRequestHistory(phone_number);
 
-    db.lookupRequestsByAddress(address)
-        .then(result => {
-            if (result.length === 0) {
-                console.log("No requests found for this address");
-                return res.status(404).json({ error: 'No requests found for this address' });
-            }
-            res.status(200).json({ success: true, requests: result });
-        })
-        .catch(err => {
-            console.log("Error in lookup:", err);
-            res.status(500).json({ error: 'Error fetching requests' });
-        });
-});
-
-// Submit a quote for a request
-app.post('/submit-quote', (req, res) => {
-    console.log("Endpoint: submit a quote");
-    console.log("Request body:", req.body);
-
-    const { requestId, initialPrice, proposedPrice, workStartDate, workEndDate } = req.body;
-    if (!requestId || !initialPrice || !proposedPrice || !workStartDate || !workEndDate) {
-        console.log("Validation error: Missing required fields");
-        return res.status(400).json({ error: 'All fields are required: requestId, initialPrice, proposedPrice, workStartDate, workEndDate' });
+        if (requestHistory.length > 0) {
+            res.status(200).json({ data: requestHistory });
+        } else {
+            res.status(404).json({ message: 'No history found for this phone number' });
+        }
+    } catch (error) {
+        console.error('Error fetching request history:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
-
-    const db = dbService.getDbServiceInstance();
-
-    db.addQuote(requestId, initialPrice, proposedPrice, workStartDate, workEndDate)
-        .then(data => {
-            console.log("Quote submitted with ID:", data.insertId);
-            res.status(201).json({ success: true, quoteId: data.insertId });
-        })
-        .catch(err => {
-            console.log("Error in submit-quote:", err);
-            res.status(500).json({ error: 'Error submitting quote' });
-        });
 });
+
+
+
+
+// === CONTRACTOR ROUTES ===
+
+
+
+// Fetch requests from the database
+app.get('/requests', (req, res) => {
+    const query = 'SELECT * FROM requests';
+    db.query(query, (err, results) => {
+      if (err) throw err;
+      res.json(results);
+    });
+  });
+  
+  // Fetch quotes from the database
+  app.get('/quotes', (req, res) => {
+    const query = 'SELECT * FROM quotes';
+    db.query(query, (err, results) => {
+      if (err) throw err;
+      res.json(results);
+    });
+  });
+
 
 // Start server
-app.listen(5050, () => {
-    console.log("Server is running on port 5050.");
+app.listen(3000, () => {
+    console.log("Server is running on port 3000.");
 });
