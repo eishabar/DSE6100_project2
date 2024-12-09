@@ -82,17 +82,49 @@ class DbService {
     
     // Fetch Request History by Phone Number
     async getRequestHistory(phone_number) {
-        const sql = `
-            SELECT 
-                Clients.client_id, Clients.first_name, Clients.last_name, 
-                Requests.request_id, Requests.property_address, Requests.square_feet, Requests.status, Requests.submission_date
-            FROM Clients
-            LEFT JOIN Requests ON Clients.client_id = Requests.client_id
-            WHERE Clients.phone_number = ?
-        `;
+        const sql = `SELECT 
+                    clients.client_id, 
+                    clients.first_name, 
+                    clients.last_name, 
+                    requests.request_id, 
+                    requests.property_address, 
+                    requests.square_feet, 
+                    requests.status, 
+                    requests.submission_date
+                FROM clients
+                LEFT JOIN requests ON clients.client_id = requests.client_id
+                WHERE clients.phone_number = ?`;
+
         return new Promise((resolve, reject) => {
             connection.query(sql, [phone_number], (err, results) => {
                 if (err) reject(err);
+                resolve(results);
+            });
+        });
+    }
+
+
+    async getAllRequests() {
+        const sql = 'SELECT request_id, client_id, property_address, status FROM requests';
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, results) => {
+                if (err) {
+                    console.error('Database query error:', err);
+                    reject(err);
+                }
+                resolve(results);
+            });
+        });
+    }
+    
+    async getAllquotes() {
+        const sql = 'SELECT quote_id, request_id, initial_price, proposed_price, status FROM quotes';
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, results) => {
+                if (err) {
+                    console.error('Database query error:', err);
+                    reject(err);
+                }
                 resolve(results);
             });
         });
@@ -103,4 +135,4 @@ class DbService {
     
 
 
-module.exports = DbService;
+module.exports = new DbService;

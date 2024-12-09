@@ -166,10 +166,8 @@
             <div id="formSection">
                 <form id="lookupForm">
                     <div class="form-group">
-                        <label for="phoneNumber">Phone Number</label>
-                        <input type="number" id="phoneNumber" name="phoneNumber" required>
-
-                        
+                        <label for="phoneNumberLookup">Phone Number</label>
+                        <input type="number" id="phoneNumberLookup" name="phoneNumberLookup" required>    
                     </div>
                     <button type="submit">Search</button>
                 </form>
@@ -214,7 +212,178 @@
         </div>
     </div>
 
-<script src="app.js"></script>
+<script>
+
+const apiBaseUrl = "http://localhost:3000"; // Change this to match your backend URL
+
+// Setup navigation for different pages
+
+function setupNavigation() {
+    const menu = document.querySelector('.menu');
+    const registerClientForm = document.getElementById('registerClientForm');
+    const lookupStatusPage = document.getElementById('lookupStatusPage');
+    const newRequestPage = document.getElementById('newRequestPage');
+
+    const registerClientBtn = document.getElementById('registerClientBtn');
+    const lookupStatusBtn = document.getElementById('lookupStatusBtn');
+    const newRequestBtn = document.getElementById('newRequestBtn');
+    const backToMenuFromLookup = document.getElementById('backToMenuFromLookup');
+    const backToMenuFromNewRequest = document.getElementById('backToMenuFromNewRequest');
+    const backToMenuFromRegister = document.getElementById('backToMenuFromRegister');
+
+    // Helper function to switch between sections
+    function switchSection(hideSection, showSection) {
+        hideSection.classList.remove('active');
+        showSection.classList.add('active');
+    }
+
+    // Ensure all elements exist before adding event listeners
+    if (registerClientBtn && menu && registerClientForm) {
+        registerClientBtn.addEventListener('click', () => {
+            switchSection(menu, registerClientForm);
+        });
+    }
+
+    if (newRequestBtn && menu && newRequestPage) {
+        newRequestBtn.addEventListener('click', () => {
+            switchSection(menu, newRequestPage);
+        });
+    }
+
+    if (lookupStatusBtn && menu && lookupStatusPage) {
+        lookupStatusBtn.addEventListener('click', () => {
+            switchSection(menu, lookupStatusPage);
+        });
+    }
+
+    // Back to Menu buttons
+    if (backToMenuFromLookup && lookupStatusPage && menu) {
+        backToMenuFromLookup.addEventListener('click', () => {
+            switchSection(lookupStatusPage, menu);
+        });
+    }
+
+    if (backToMenuFromRegister && registerClientForm && menu) {
+        backToMenuFromRegister.addEventListener('click', () => {
+            switchSection(registerClientForm, menu);
+        });
+    }
+
+    if (backToMenuFromNewRequest && newRequestPage && menu) {
+        backToMenuFromNewRequest.addEventListener('click', () => {
+            switchSection(newRequestPage, menu);
+        });
+    }
+}
+
+// Call the function when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', setupNavigation);
+
+// Client Registration
+document.getElementById("registerClientForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = {
+        first_name: document.getElementById("firstName").value,
+        last_name: document.getElementById("lastName").value,
+        phone_number: document.getElementById("phoneNumber").value,
+        credit_card_number: document.getElementById("credit_card_number").value,
+        expiration_date: document.getElementById("expirationDate").value,
+        security_code: document.getElementById("securityCode").value,
+        address: document.getElementById("address").value,
+        email: document.getElementById("email").value,
+    };
+
+    const response = await fetch(`${apiBaseUrl}/register-client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+        alert("Registration Successful!");
+        event.target.reset();
+    } else {
+        alert("Registration Failed!");
+    }
+});
+
+// Submit Request
+document.getElementById("requestForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const clientId = document.getElementById("clientId").value;
+    const propertyAddress = document.getElementById("propertyAddress").value;
+    const squareFeet = document.getElementById("squareFeet").value;
+    const proposedPrice = document.getElementById("proposedPrice").value;
+    const note = document.getElementById("note").value;
+
+    // Collect image URLs from textarea
+    const imageUrls = document.getElementById("imageUrls").value.split('\n').map(url => url.trim()).filter(url => url);
+
+    const requestData = {
+        client_id: clientId,
+        property_address: propertyAddress,
+        square_feet: squareFeet,
+        proposed_price: proposedPrice,
+        note,
+        image_urls: imageUrls,
+    };
+
+    const response = await fetch(`${apiBaseUrl}/submit-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+    });
+
+    if (response.ok) {
+        alert("Request Submitted!");
+        document.getElementById("requestForm").reset();
+    } else {
+        alert("Failed to Submit Request!");
+    }
+});
+
+
+
+document.getElementById("lookupForm")?.addEventListener("submit", async (event) => {
+    const phoneNumberInput = document.getElementById("phoneNumberLookup");
+    const phoneNumber = phoneNumberInput.value.trim();
+    event.preventDefault(); // Ensure default form submission is stopped
+     
+    // Validate that phone number is not empty
+    if (!phoneNumber) {
+        alert("Please enter a phone number");
+        phoneNumberInput.focus(); // Focus back on the input
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/lookup-status`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ phone_number: phoneNumber }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Full error response:", errorText);
+            alert(`Lookup failed: ${errorText}`);
+            return;
+        }
+
+        const data = await response.json();
+        console.log(data);
+    } catch (error) {
+        console.error("Error during lookup:", error);
+        alert("An error occurred during the lookup");
+    }
+});
+
+
+
+</script>
 
 </body>
 </html>

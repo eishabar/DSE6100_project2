@@ -60,25 +60,28 @@ app.post('/submit-request', (req, res) => {
         });
 });
 
-// Endpoint for Lookup Status
 app.post('/lookup-status', async (req, res) => {
     const { phone_number } = req.body;
 
-    if (!phone_number) {
-        return res.status(400).json({ message: 'Phone number is required' });
-    }
 
     try {
         const requestHistory = await dbService.getRequestHistory(phone_number);
 
-        if (requestHistory.length > 0) {
+        if (requestHistory && requestHistory.length > 0) {
             res.status(200).json({ data: requestHistory });
         } else {
-            res.status(404).json({ message: 'No history found for this phone number' });
+            res.status(404).json({ 
+                message: 'No request history found for this phone number',
+                data: [] 
+            });
         }
     } catch (error) {
         console.error('Error fetching request history:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.log(dbService);
+        res.status(500).json({ 
+            message: 'Internal server error', 
+            error: error.message 
+        });
     }
 });
 
@@ -89,24 +92,32 @@ app.post('/lookup-status', async (req, res) => {
 
 
 
-// Fetch requests from the database
-app.get('/requests', (req, res) => {
-    const query = 'SELECT * FROM requests';
-    db.query(query, (err, results) => {
-      if (err) throw err;
-      res.json(results);
-    });
-  });
-  
-  // Fetch quotes from the database
-  app.get('/quotes', (req, res) => {
-    const query = 'SELECT * FROM quotes';
-    db.query(query, (err, results) => {
-      if (err) throw err;
-      res.json(results);
-    });
-  });
+// Endpoint to get request data
+app.get('/requests', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    
+    try {
+        const results = await db.getAllRequests(); // Use a method to fetch requests
+        res.json(results); // Send results as JSON
+    } catch (error) {
+        console.error('Error fetching requests:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
 
+
+
+// Endpoint to get quotes data
+app.get('/quotes', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllquotes(); // Use a method to fetch quotes
+        res.json(results); // Send results as JSON
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
 
 // Start server
 app.listen(3000, () => {

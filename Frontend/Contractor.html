@@ -169,7 +169,7 @@
                 <thead>
                     <tr>
                         <th>Request ID</th>
-                        <th>Client Name</th>
+                        <th>Client ID</th>
                         <th>Address</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -205,13 +205,8 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="quotesTableBody">
                 <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
                     <td>
                         <button class="action" onclick="openModal('quoteDetails')">Details</button>
                         <button class="action">Negotiate</button>
@@ -243,12 +238,8 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="ordersTableBody">
                 <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>2</td>
                     <td>
                         <button class="action" onclick="openModal('orderDetails')">Details</button>
                     </td>
@@ -280,13 +271,8 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="billsTableBody">
                 <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
                     <td>
                         <button class="action" onclick="openModal('billDetails')">Details</button>
                         <button class="action">Negotiate</button>
@@ -348,7 +334,165 @@
         </div>
     </div>
 
-<script src="app.js"></script>
+<script>
+    
+    const apiBaseUrl = "http://localhost:3000"; // Change this to match your backend URL
+    // Consolidated Event Listener
+document.addEventListener('DOMContentLoaded', function () {
+    // Setup Tab Navigation
+    setupTabNavigation();
+
+    // Fetch Requests
+    fetchRequests();
+
+    // Fetch Quotes
+    fetchAndDisplayQuotes();
+
+    // Attach Filter Button Event Listener
+    const filterButton = document.getElementById('filterButton');
+    if (filterButton) {
+        filterButton.addEventListener('click', fetchRequests);
+    }
+});
+
+// Tab Navigation Setup
+function setupTabNavigation() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons and tab contents
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            // Add active class to clicked button and corresponding tab content
+            button.classList.add('active');
+            const tabId = button.getAttribute('data-tab');
+            document.getElementById(tabId).classList.add('active');
+
+            // Fetch data for specific tabs if needed
+            switch (tabId) {
+                case 'requests':
+                    fetchRequests();
+                    break;
+                case 'quotes':
+                    fetchAndDisplayQuotes();
+                    break;
+                // Add other tab data fetching as needed
+            }
+        });
+    });
+}
+
+// Fetch Requests Function
+async function fetchRequests() {
+    try {
+        // Get filter values
+        const property_address = document.getElementById('searchAddress').value.trim();
+        const status = document.getElementById('statusFilter').value;
+
+        // Construct query parameters
+        const queryParams = new URLSearchParams();
+        if (property_address) queryParams.append('property_address', property_address);
+        if (status) queryParams.append('status', status);
+
+        // Fetch requests with filters
+        const url = `http://localhost:3000/requests?${queryParams.toString()}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch data');
+        }
+        
+        const requests = await response.json();
+
+        // Populate table
+        const tableBody = document.getElementById('requestsTableBody');
+        tableBody.innerHTML = ''; // Clear previous rows
+        
+        requests.forEach((request) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${request.request_id}</td>
+                <td>${request.client_id}</td>
+                <td>${request.property_address}</td>
+                <td>${request.status}</td>
+                <td>
+                    <button class="action" onclick="openModal('requestDetails', ${request.request_id})">View</button>
+                    <button class="action">Edit</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading requests:', error);
+        // Optionally show an error message to the user
+        const tableBody = document.getElementById('requestsTableBody');
+        tableBody.innerHTML = `<tr><td colspan="5">Error loading requests: ${error.message}</td></tr>`;
+    }
+}
+
+// Fetch and Display Quotes Function
+async function fetchAndDisplayQuotes() {
+    try {
+        const url = `http://localhost:3000/quotes`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch quotes');
+        }
+
+        const quotes = await response.json();
+        const quotesTableBody = document.getElementById('quotesTableBody');
+
+        // Clear the existing table body
+        quotesTableBody.innerHTML = '';
+
+        // Populate the table with the fetched data
+        quotes.forEach(quote => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${quote.quote_id}</td>
+                <td>${quote.request_id}</td>
+                <td>${quote.initial_price}</td>
+                <td>${quote.proposed_price}</td>
+                <td>${quote.status}</td>
+                <td>
+                    <button class="action" onclick="openModal('quoteDetails', ${quote.quote_id})">Details</button>
+                    <button class="action" onclick="startNegotiation(${quote.quote_id})">Negotiate</button>
+                </td>
+            `;
+            quotesTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error fetching and displaying quotes:', error);
+        const quotesTableBody = document.getElementById('quotesTableBody');
+        quotesTableBody.innerHTML = `<tr><td colspan="6">Error loading quotes: ${error.message}</td></tr>`;
+    }
+}
+
+// Modal and Negotiation Placeholder Functions
+function openModal(modalType, itemId) {
+    const modal = document.getElementById(modalType);
+    if (modal) {
+        modal.classList.add('active');
+        console.log(`Open modal: ${modalType} for ID: ${itemId}`);
+    }
+}
+
+function closeModal(modalType) {
+    const modal = document.getElementById(modalType);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function startNegotiation(quoteId) {
+    console.log(`Start negotiation for quote ID: ${quoteId}`);
+    // Implement negotiation logic here
+}
+</script>
     
 </body>
 </html>
