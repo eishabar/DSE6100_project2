@@ -180,6 +180,30 @@
                 <p><strong>Chat 2:</strong> Waiting for approval from management.</p>
                 <p><strong>Chat 3:</strong> The request has been completed successfully.</p>
             </div>
+            
+            <div id="requestDetailsSection" style="display: none;">
+                <h3>Request Details</h3>
+                <div id="clientInfoContainer">
+                    <p><strong>Client Name:</strong> <span id="clientNameDisplay"></span></p>
+                    <p><strong>Property Address:</strong> <span id="propertyAddressDisplay"></span></p>
+                    <p><strong>Square Feet:</strong> <span id="squareFeetDisplay"></span></p>
+                    <p><strong>Request Status:</strong> <span id="requestStatusDisplay"></span></p>
+                    <p><strong>Submission Date:</strong> <span id="submissionDateDisplay"></span></p>
+                </div>
+
+                <div id="quoteSection" style="display: none;">
+                    <h3>Quote Details</h3>
+                    <p><strong>Total Price:</strong> <span id="quotePriceDisplay"></span></p>
+                    <p><strong>Description:</strong> <span id="quoteDescriptionDisplay"></span></p>
+                    <p><strong>Quote Status:</strong> <span id="quoteStatusDisplay"></span></p>
+                    
+                    <div id="quoteActionButtons" style="display: none;">
+                        <button id="acceptQuoteBtn">Accept Quote</button>
+                        <button id="denyQuoteBtn">Deny Quote</button>
+                        <button id="negotiateQuoteBtn">Negotiate Quote</button>
+                    </div>
+                </div>
+            </div>
 
             <button class="back-btn" id="backToMenuFromLookup">Back to Menu</button>
         </div>
@@ -365,24 +389,85 @@ document.getElementById("lookupForm")?.addEventListener("submit", async (event) 
             body: JSON.stringify({ phone_number: phoneNumber }),
         });
 
-        const data = await response.json();
+        const { data, found } = await response.json();
+        console.log('Full lookup data:', data);
+        // Hide simulated chat and reset sections
+        document.getElementById('simulatedChatHistory').style.display = 'none';
+        const requestDetailsSection = document.getElementById('requestDetailsSection');
+        const quoteSection = document.getElementById('quoteSection');
+        requestDetailsSection.style.display = 'none';
+        quoteSection.style.display = 'none';
 
-        // If response is 404, handle no records found
-        if (response.status === 404) {
+        if (!found) {
             document.getElementById('simulatedChatHistory').style.display = 'block';
             return;
         }
 
-        // Handle successful response
-        if (response.ok) {
-            console.log(data);
-            // TODO: Update UI with actual request history
+        // Populate request details
+        const firstRecord = data[0];
+        document.getElementById('clientNameDisplay').textContent = 
+            `${firstRecord.first_name} ${firstRecord.last_name}`;
+        document.getElementById('propertyAddressDisplay').textContent = 
+            firstRecord.property_address;
+        document.getElementById('squareFeetDisplay').textContent = 
+            firstRecord.square_feet;
+        document.getElementById('requestStatusDisplay').textContent = 
+            firstRecord.status;
+        document.getElementById('submissionDateDisplay').textContent = 
+            new Date(firstRecord.submission_date).toLocaleDateString();
+
+        // Show request details section
+        requestDetailsSection.style.display = 'block';
+
+        // Check if quote exists
+        if (firstRecord.quote_id) {
+            document.getElementById('quotePriceDisplay').textContent = 
+                `$${firstRecord.proposed_price.toFixed(2)}`;
+            document.getElementById('quoteDescriptionDisplay').textContent = 
+                firstRecord.latest_contractor_note;
+            document.getElementById('quoteStatusDisplay').textContent = 
+                firstRecord.quote_status;
+            
+            // Set quote_id as a data attribute for later use
+            document.getElementById('quoteStatusDisplay').dataset.quoteId = firstRecord.quote_id;
+
+            const quoteActionButtons = document.getElementById('quoteActionButtons');
+            quoteActionButtons.style.display = 'block';
+            quoteSection.style.display = 'block';
         }
     } catch (error) {
         console.error("Error during lookup:", error);
         alert("An error occurred during the lookup");
     }
 });
+
+// Quote action event listeners
+document.getElementById('acceptQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Accepted'));
+document.getElementById('denyQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Denied'));
+document.getElementById('negotiateQuoteBtn')?.addEventListener('click', () => handleQuoteAction('In Negotiation'));
+
+async function handleQuoteAction(action) {
+    const quoteId = document.getElementById('quoteStatusDisplay').dataset.quoteId;
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/quote-action`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ quote_id: quoteId, action })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+
+        // Update quote status display
+        document.getElementById('quoteStatusDisplay').textContent = action;
+    } catch (error) {
+        console.error('Error processing quote action:', error);
+        alert('Failed to process quote action');
+    }
+}
 
 
 </script>

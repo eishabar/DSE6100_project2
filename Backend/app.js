@@ -64,22 +64,37 @@ app.post('/lookup-status', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     const { phone_number } = req.body;
 
-
     try {
         const requestHistory = await db.getRequestHistory(phone_number);
 
-        if (requestHistory && requestHistory.length > 0) {
-            res.status(200).json({ data: requestHistory });
-        } else {
-            res.status(404).json({ 
-                message: 'No request history found for this phone number'
-            });
-        }
+        res.status(200).json({ 
+            data: requestHistory,
+            found: requestHistory.length > 0
+        });
     } catch (error) {
         console.error('Error fetching request history:', error);
-        console.log(dbService);
         res.status(500).json({ 
             message: 'Internal server error', 
+            error: error.message 
+        });
+    }
+});
+
+// New route to handle quote actions
+app.post('/quote-action', async (req, res) => {
+    const { quote_id, action } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+        await db.updateQuoteStatus(quote_id, action);
+        
+        res.status(200).json({ 
+            message: `Quote ${action} successfully` 
+        });
+    } catch (error) {
+        console.error('Error updating quote status:', error);
+        res.status(500).json({ 
+            message: 'Error updating quote', 
             error: error.message 
         });
     }

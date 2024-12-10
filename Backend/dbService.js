@@ -84,18 +84,25 @@ class DbService {
     
     // Fetch Request History by Phone Number
     async getRequestHistory(phone_number) {
-        const sql = `SELECT 
-                    clients.client_id, 
-                    clients.first_name, 
-                    clients.last_name, 
-                    requests.request_id, 
-                    requests.property_address, 
-                    requests.square_feet, 
-                    requests.status, 
-                    requests.submission_date
-                FROM clients
-                LEFT JOIN requests ON clients.client_id = requests.client_id
-                WHERE clients.phone_number = ?`;
+        const sql = `
+            SELECT 
+                clients.client_id, 
+                clients.first_name, 
+                clients.last_name, 
+                requests.request_id, 
+                requests.property_address, 
+                requests.square_feet, 
+                requests.status, 
+                requests.submission_date,
+                quotes.quote_id,
+                quotes.proposed_price,
+                quotes.latest_contractor_note,
+                quotes.status AS quote_status
+            FROM clients
+            LEFT JOIN requests ON clients.client_id = requests.client_id
+            LEFT JOIN quotes ON requests.request_id = quotes.request_id
+            WHERE clients.phone_number = ?
+        `;
 
         return new Promise((resolve, reject) => {
             connection.query(sql, [phone_number], (err, results) => {
@@ -105,6 +112,16 @@ class DbService {
         });
     }
 
+    async updateQuoteStatus(quote_id, status) {
+        const sql = 'UPDATE quotes SET status = ? WHERE quote_id = ?';
+
+        return new Promise((resolve, reject) => {
+            connection.query(sql, [status, quote_id], (err, results) => {
+                if (err) reject(err);
+                resolve(results);
+            });
+        });
+    }
 
     async getAllRequests() {
         const sql = 'SELECT request_id, client_id, property_address, status FROM requests';
