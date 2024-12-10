@@ -181,19 +181,20 @@
             </table>
         </div>
 
-    <!-- Quotes Tab -->
-    <div id="quotes" class="tab-content">
-        <h2>Quotes</h2>
-        <div class="filters">
-            <input type="text" placeholder="Search by Request ID">
-            <select>
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="accepted">Accepted</option>
-                <option value="declined">Declined</option>
-            </select>
-            <button class="action">Filter</button>
-        </div>
+<!-- Quotes Tab -->
+<div id="quotes" class="tab-content">
+    <h2>Quotes</h2>
+    <div class="filters">
+        <input type="text" placeholder="Search by Request ID">
+        <select>
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="declined">Declined</option>
+        </select>
+        <button class="action">Filter</button>
+    </div>
+    <table>
         <thead>
             <tr>
                 <th>Quote ID</th>
@@ -207,15 +208,10 @@
             </tr>
         </thead>
         <tbody id="quotesTableBody">
-                <tr>
-                    <td>
-                        <button class="action" onclick="openModal('quoteDetails')">Details</button>
-                        <button class="action">Negotiate</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+            <!-- Rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+</div>
 
     <!-- Orders Tab -->
     <div id="orders" class="tab-content">
@@ -533,7 +529,6 @@ async function viewRequestDetails(requestId) {
 }
 
 
-// Fetch and Display Quotes Function
 async function fetchAndDisplayQuotes() {
     try {
         const url = 'http://localhost:3000/getquotes';
@@ -545,6 +540,11 @@ async function fetchAndDisplayQuotes() {
 
         const quotes = await response.json();
         const quotesTableBody = document.getElementById('quotesTableBody');
+        
+        // If the element is null, throw a more specific error
+        if (!quotesTableBody) {
+            throw new Error('Could not find quotesTableBody element. Check your HTML structure.');
+        }
 
         // Clear the existing table body
         quotesTableBody.innerHTML = '';
@@ -569,8 +569,13 @@ async function fetchAndDisplayQuotes() {
         });
     } catch (error) {
         console.error('Error fetching and displaying quotes:', error);
-        const quotesTableBody = document.getElementById('quotesTableBody');
-        quotesTableBody.innerHTML = `<tr><td colspan="8">Error loading quotes: ${error.message}</td></tr>`;
+        // Fallback error handling
+        const errorContainer = document.querySelector('#quotes table tbody');
+        if (errorContainer) {
+            errorContainer.innerHTML = `<tr><td colspan="8">Error loading quotes: ${error.message}</td></tr>`;
+        } else {
+            console.error('Could not find a place to display the error message');
+        }
     }
 }
 

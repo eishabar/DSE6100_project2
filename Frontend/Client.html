@@ -348,12 +348,11 @@ document.getElementById("requestForm")?.addEventListener("submit", async (event)
 document.getElementById("lookupForm")?.addEventListener("submit", async (event) => {
     const phoneNumberInput = document.getElementById("phoneNumberLookup");
     const phoneNumber = phoneNumberInput.value.trim();
-    event.preventDefault(); // Ensure default form submission is stopped
-     
-    // Validate that phone number is not empty
+    event.preventDefault();
+
     if (!phoneNumber) {
         alert("Please enter a phone number");
-        phoneNumberInput.focus(); // Focus back on the input
+        phoneNumberInput.focus();
         return;
     }
 
@@ -366,21 +365,24 @@ document.getElementById("lookupForm")?.addEventListener("submit", async (event) 
             body: JSON.stringify({ phone_number: phoneNumber }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Full error response:", errorText);
-            alert(`Lookup failed: ${errorText}`);
+        const data = await response.json();
+
+        // If response is 404, handle no records found
+        if (response.status === 404) {
+            document.getElementById('simulatedChatHistory').style.display = 'block';
             return;
         }
 
-        const data = await response.json();
-        console.log(data);
+        // Handle successful response
+        if (response.ok) {
+            console.log(data);
+            // TODO: Update UI with actual request history
+        }
     } catch (error) {
         console.error("Error during lookup:", error);
         alert("An error occurred during the lookup");
     }
 });
-
 
 
 </script>
