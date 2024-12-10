@@ -194,18 +194,19 @@
             </select>
             <button class="action">Filter</button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Quote ID</th>
-                    <th>Request ID</th>
-                    <th>Initial Price</th>
-                    <th>Proposed Price</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="quotesTableBody">
+        <thead>
+            <tr>
+                <th>Quote ID</th>
+                <th>Request ID</th>
+                <th>Initial Price</th>
+                <th>Proposed Price</th>
+                <th>Work Start Date</th>
+                <th>Work End Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="quotesTableBody">
                 <tr>
                     <td>
                         <button class="action" onclick="openModal('quoteDetails')">Details</button>
@@ -295,13 +296,15 @@
 
     <!-- Modals -->
     <div id="requestDetails" class="modal">
-        <div class="modal-header">Request Details</div>
         <div class="modal-content">
-            <p>Details of the request will be displayed here.</p>
-            <!-- Additional form inputs or content -->
-        </div>
-        <div class="modal-actions">
-            <button class="modal-close" onclick="closeModal('requestDetails')">Close</button>
+            <span class="close" onclick="closeModal('requestDetails')">&times;</span>
+            <h2>Request Details</h2>
+            <div id="requestDetailsContent">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+            <div class="modal-actions">
+                <button onclick="closeModal('requestDetails')">Close</button>
+            </div>
         </div>
     </div>
     <div id="quoteDetails" class="modal">
@@ -336,7 +339,7 @@
 
 <script>
     
-    const apiBaseUrl = "http://localhost:3000"; // Change this to match your backend URL
+const apiBaseUrl = "http://localhost:3000"; // Change this to match your backend URL
     // Consolidated Event Listener
 document.addEventListener('DOMContentLoaded', function () {
     // Setup Tab Navigation
@@ -357,6 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Tab Navigation Setup
 function setupTabNavigation() {
+
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -385,19 +389,98 @@ function setupTabNavigation() {
     });
 }
 
-// Fetch Requests Function
+// Fetch and display request details in modal
+async function fetchRequestDetails(requestId) {
+    try {
+        const response = await fetch(`http://localhost:3000/requests/${requestId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch request details');
+        }
+        const details = await response.json();
+        
+        // Populate modal with details
+        document.getElementById('requestDetailsContent').innerHTML = `
+            <p><strong>Client Name:</strong> ${details.client_name}</p>
+            <p><strong>Email:</strong> ${details.client_email}</p>
+            <p><strong>Property Address:</strong> ${details.property_address}</p>
+            <p><strong>Square Feet:</strong> ${details.square_feet}</p>
+            <p><strong>Submission Date:</strong> ${details.submission_date}</p>
+            <p><strong>Note:</strong> ${details.note || 'No additional notes'}</p>
+            <p><strong>Status:</strong> ${details.status}</p>
+        `;
+    } catch (error) {
+        console.error('Error loading request details:', error);
+        document.getElementById('requestDetailsContent').innerHTML = 
+            `<p>Error loading details: ${error.message}</p>`;
+    }
+}
+
+// Create a quote for a request
+async function createQuote(requestId) {
+    const initialPrice = prompt('Enter initial price for the quote:');
+    const proposedPrice = prompt('Enter proposed price:');
+    const workStartDate = prompt('Enter work start date (YYYY-MM-DD):');
+    const workEndDate = prompt('Enter work end date (YYYY-MM-DD):');
+    const latestContractorNote = prompt('Enter any notes for the quote:');
+
+    if (initialPrice && proposedPrice) {
+        try {
+            const response = await fetch('http://localhost:3000/quotes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    requestId, 
+                    initialPrice: parseFloat(initialPrice),
+                    proposedPrice: parseFloat(proposedPrice),
+                    workStartDate,
+                    workEndDate,
+                    latestContractorNote
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create quote');
+            }
+            
+             // Update Request Status
+             const statusResponse = await fetch(`http://localhost:3000/requests/${requestId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'Quoted' })
+            });
+
+            if (!statusResponse.ok) {
+                throw new Error('Failed to update request status');
+            }
+
+            const result = await response.json();
+            alert(`Quote created successfully with ID: ${result.quoteId}`);
+
+            // Refresh quotes table
+            fetchAndDisplayQuotes();
+            fetchRequests();
+        } catch (error) {
+            console.error('Error creating quote:', error);
+            alert(`Error creating quote: ${error.message}`);
+        }
+    }
+}
+
+
+// Update the fetchRequests function to conditionally show Edit button
 async function fetchRequests() {
     try {
-        // Get filter values
         const property_address = document.getElementById('searchAddress').value.trim();
         const status = document.getElementById('statusFilter').value;
 
-        // Construct query parameters
         const queryParams = new URLSearchParams();
         if (property_address) queryParams.append('property_address', property_address);
         if (status) queryParams.append('status', status);
 
-        // Fetch requests with filters
         const url = `http://localhost:3000/requests?${queryParams.toString()}`;
         const response = await fetch(url);
         
@@ -407,9 +490,8 @@ async function fetchRequests() {
         
         const requests = await response.json();
 
-        // Populate table
         const tableBody = document.getElementById('requestsTableBody');
-        tableBody.innerHTML = ''; // Clear previous rows
+        tableBody.innerHTML = '';
         
         requests.forEach((request) => {
             const row = document.createElement('tr');
@@ -420,23 +502,41 @@ async function fetchRequests() {
                 <td>${request.status}</td>
                 <td>
                     <button class="action" onclick="openModal('requestDetails', ${request.request_id})">View</button>
-                    <button class="action">Edit</button>
+                    ${request.status.toLowerCase() === 'pending' ? 
+                        `<button class="action" onclick="createQuote(${request.request_id})">Create Quote</button>` : 
+                        ''}
                 </td>
             `;
             tableBody.appendChild(row);
         });
     } catch (error) {
         console.error('Error loading requests:', error);
-        // Optionally show an error message to the user
         const tableBody = document.getElementById('requestsTableBody');
         tableBody.innerHTML = `<tr><td colspan="5">Error loading requests: ${error.message}</td></tr>`;
     }
 }
 
+// View Request Details
+async function viewRequestDetails(requestId) {
+    try {
+        const url = `http://localhost:3000/requests/${requestId}`;
+        const response = await fetch(url);
+
+        if (!response.ok) throw new Error('Failed to fetch request details');
+
+        const details = await response.json();
+        alert(JSON.stringify(details, null, 2)); // Replace this with a modal for better UI
+    } catch (error) {
+        console.error('Error fetching request details:', error);
+        alert('Error fetching details: ' + error.message);
+    }
+}
+
+
 // Fetch and Display Quotes Function
 async function fetchAndDisplayQuotes() {
     try {
-        const url = `http://localhost:3000/quotes`;
+        const url = 'http://localhost:3000/getquotes';
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -457,6 +557,8 @@ async function fetchAndDisplayQuotes() {
                 <td>${quote.request_id}</td>
                 <td>${quote.initial_price}</td>
                 <td>${quote.proposed_price}</td>
+                <td>${quote.work_start_date || 'N/A'}</td>
+                <td>${quote.work_end_date || 'N/A'}</td>
                 <td>${quote.status}</td>
                 <td>
                     <button class="action" onclick="openModal('quoteDetails', ${quote.quote_id})">Details</button>
@@ -468,16 +570,19 @@ async function fetchAndDisplayQuotes() {
     } catch (error) {
         console.error('Error fetching and displaying quotes:', error);
         const quotesTableBody = document.getElementById('quotesTableBody');
-        quotesTableBody.innerHTML = `<tr><td colspan="6">Error loading quotes: ${error.message}</td></tr>`;
+        quotesTableBody.innerHTML = `<tr><td colspan="8">Error loading quotes: ${error.message}</td></tr>`;
     }
 }
 
-// Modal and Negotiation Placeholder Functions
-function openModal(modalType, itemId) {
+
+// Modify existing openModal function
+function openModal(modalType, requestId) {
     const modal = document.getElementById(modalType);
     if (modal) {
         modal.classList.add('active');
-        console.log(`Open modal: ${modalType} for ID: ${itemId}`);
+        if (modalType === 'requestDetails') {
+            fetchRequestDetails(requestId);
+        }
     }
 }
 

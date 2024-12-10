@@ -20,9 +20,11 @@ connection.connect((err) => {
 });
 
 class DbService {
+    
     static getDbServiceInstance() {
         return instance ? instance : new DbService();
     }
+
 
     async registerClient(first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email) {
         const sql = `INSERT INTO Clients (first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email, timestamp) VALUES (?, ?, ?, ? , ? , ? , ? , ? , NOW())`;
@@ -117,8 +119,21 @@ class DbService {
         });
     }
     
+    
+    
     async getAllquotes() {
-        const sql = 'SELECT quote_id, request_id, initial_price, proposed_price, status FROM quotes';
+        const sql = `
+            SELECT 
+                quote_id, 
+                request_id, 
+                initial_price, 
+                proposed_price, 
+                work_start_date, 
+                work_end_date, 
+                latest_contractor_note, 
+                status 
+            FROM quotes
+        `;
         return new Promise((resolve, reject) => {
             connection.query(sql, (err, results) => {
                 if (err) {
@@ -130,9 +145,71 @@ class DbService {
         });
     }
     
+   
+    async getRequestDetails(requestId) {
+        const sql = `
+            SELECT r.*, CONCAT(c.first_name, ' ', c.last_name) AS client_name, c.email AS client_email 
+            FROM Requests r
+            JOIN Clients c ON r.client_id = c.client_id
+            WHERE r.request_id = ?
+        `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, [requestId], (err, results) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                if (results.length === 0) {
+                    reject(new Error('No request found with this ID'));
+                    return;
+                }
+                resolve(results[0]);
+            });
+        });
+    }
     
+    async createQuote(requestId, initialPrice, proposedPrice, workStartDate, workEndDate, latestContractorNote) {
+        const sql = 
+            'INSERT INTO Quotes ' + 
+            '(request_id, initial_price, proposed_price, work_start_date, work_end_date, latest_contractor_note, status) ' + 
+            'VALUES (?, ?, ?, ?, ?, ?, "pending")';
+        
+        return new Promise((resolve, reject) => {
+            connection.query(
+                sql, 
+                [requestId, initialPrice, proposedPrice, workStartDate, workEndDate, latestContractorNote], 
+                (err, result) => {
+                    if (err) {
+                        console.error('Error creating quote:', err);
+                        reject(err);
+                        return;
+                    }
+                    
+                    if (!result || !result.insertId) {
+                        console.error('No insert ID returned');
+                        reject(new Error('Failed to create quote'));
+                        return;
+                    }
+                    
+                    resolve(result.insertId);
+                }
+            );
+        });
+    }
+
+
+    async updateRequestStatus(requestId, status) {
+        return new Promise((resolve, reject) => {
+            const query = 'UPDATE requests SET status = ? WHERE request_id = ?';
+            connection.query(query, [status, requestId], (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            });
+        });
+    }
 }
-    
+  
 
 
-module.exports = new DbService;
+
+module.exports = DbService;

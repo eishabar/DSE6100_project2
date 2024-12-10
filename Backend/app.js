@@ -61,18 +61,18 @@ app.post('/submit-request', (req, res) => {
 });
 
 app.post('/lookup-status', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
     const { phone_number } = req.body;
 
 
     try {
-        const requestHistory = await dbService.getRequestHistory(phone_number);
+        const requestHistory = await db.getRequestHistory(phone_number);
 
         if (requestHistory && requestHistory.length > 0) {
             res.status(200).json({ data: requestHistory });
         } else {
             res.status(404).json({ 
-                message: 'No request history found for this phone number',
-                data: [] 
+                message: 'No request history found for this phone number'
             });
         }
     } catch (error) {
@@ -105,10 +105,60 @@ app.get('/requests', async (req, res) => {
     }
 });
 
+app.get('/requests/:requestId', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const requestId = req.params.requestId;
+        const requestDetails = await db.getRequestDetails(requestId);
+        res.json(requestDetails);
+    } catch (error) {
+        console.error('Error fetching request details:', error);
+        if (error.message === 'No request found with this ID') {
+            res.status(404).send('Request not found');
+        } else {
+            res.status(500).send('Error fetching request details');
+        }
+    }
+});
 
+// Endpoint to create a quote for a request
+app.post('/quotes', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const { 
+            requestId, 
+            initialPrice, 
+            proposedPrice, 
+            workStartDate, 
+            workEndDate, 
+            latestContractorNote 
+        } = req.body;
+        
+        // Validate input
+        if (!requestId || !initialPrice || !proposedPrice) {
+            return res.status(400).json({ error: 'RequestId, initial price, and proposed price are required' });
+        }
+
+        const quoteId = await db.createQuote(
+            requestId, 
+            initialPrice, 
+            proposedPrice, 
+            workStartDate, 
+            workEndDate, 
+            latestContractorNote
+        );
+        res.status(201).json({ quoteId });
+    } catch (error) {
+        console.error('Error creating quote:', error);
+        res.status(500).json({ 
+            error: 'Error creating quote', 
+            details: error.message 
+        });
+    }
+});
 
 // Endpoint to get quotes data
-app.get('/quotes', async (req, res) => {
+app.get('/getquotes', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     try {
         const results = await db.getAllquotes(); // Use a method to fetch quotes
@@ -116,6 +166,34 @@ app.get('/quotes', async (req, res) => {
     } catch (error) {
         console.error('Error fetching quotes:', error);
         res.status(500).send('Error fetching data');
+    }
+});
+
+app.patch('/requests/:requestId/status', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const { requestId } = req.params;
+        const { status } = req.body;
+
+        // Validate input
+        if (!status) {
+            return res.status(400).json({ error: 'Status is required' });
+        }
+
+        // Use the database service method to update status
+        const result = await db.updateRequestStatus(requestId, status);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        res.json({ message: 'Status updated successfully' });
+    } catch (error) {
+        console.error('Error updating request status:', error);
+        res.status(500).json({ 
+            error: 'Failed to update status', 
+            details: error.message 
+        });
     }
 });
 
