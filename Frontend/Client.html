@@ -136,8 +136,8 @@
                 <label for="address">Address</label>
                 <input type="text" id="address" name="address" required>
 
-                <label for="creditCardNumber">Credit Card Number</label>
-                <input type="text" id="creditCardNumber" name="creditCardNumber" required>
+                <label for="creditCard">Credit Card Number</label>
+                <input type="text" id="credit_card_number" name="creditCardNumber" required>
 
                 <label for="expirationDate">Expiration Date</label>
                 <input type="date" id="expirationDate" name="expirationDate" required>
@@ -146,13 +146,11 @@
                 <input type="number" id="securityCode" name="securityCode" required>
 
                 <label for="phoneNumber">Phone Number</label>
-                <input type="tel" id="phoneNumber" name="phoneNumber" required>
+                <input type="number" id="phoneNumber" name="phoneNumber" required>
 
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" required>
 
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
 
                 <button type="submit">Register</button>
             </form>
@@ -162,21 +160,18 @@
         <!-- Lookup Status Section -->
         <div class="lookup-section" id="lookupStatusPage">
             <h2>Lookup Status</h2>
-            <p>Enter the phone number and password to view the request history:</p>
+            <p>Enter the phone number to view the request history:</p>
 
             <!-- Lookup Form -->
             <div id="formSection">
                 <form id="lookupForm">
                     <div class="form-group">
-                        <label for="phoneNumber">Phone Number</label>
-                        <input type="tel" id="phoneNumber" name="phoneNumber" required>
-
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required>
+                        <label for="phoneNumberLookup">Phone Number</label>
+                        <input type="number" id="phoneNumberLookup" name="phoneNumberLookup" required>
                     </div>
                     <button type="submit">Search</button>
                 </form>
-            </div>s
+            </div>
 
             <!-- Simulated Chat History Section -->
             <div class="simulated-chat-history" id="simulatedChatHistory" style="display: none;">
@@ -186,21 +181,54 @@
                 <p><strong>Chat 3:</strong> The request has been completed successfully.</p>
             </div>
 
+            <div id="requestDetailsSection" style="display: none;">
+                <h3>Request Details</h3>
+                <div id="clientInfoContainer">
+                    <p><strong>Client Name:</strong> <span id="clientNameDisplay"></span></p>
+                    <p><strong>Property Address:</strong> <span id="propertyAddressDisplay"></span></p>
+                    <p><strong>Square Feet:</strong> <span id="squareFeetDisplay"></span></p>
+                    <p><strong>Request Status:</strong> <span id="requestStatusDisplay"></span></p>
+                    <p><strong>Submission Date:</strong> <span id="submissionDateDisplay"></span></p>
+                </div>
+
+                <div id="quoteSection" style="display: none;">
+                    <h3>Quote Details</h3>
+                    <p><strong>Total Price:</strong> <span id="quotePriceDisplay"></span></p>
+                    <p><strong>Description:</strong> <span id="quoteDescriptionDisplay"></span></p>
+                    <p><strong>Quote Status:</strong> <span id="quoteStatusDisplay"></span></p>
+
+                    <div id="quoteActionButtons" style="display: none;">
+                        <button id="acceptQuoteBtn">Accept Quote</button>
+                        <button id="denyQuoteBtn">Deny Quote</button>
+                        <button id="negotiateQuoteBtn">Negotiate Quote</button>
+                    </div>
+                </div>
+            </div>
+
             <button class="back-btn" id="backToMenuFromLookup">Back to Menu</button>
         </div>
 
         <!-- New Request Section -->
         <div class="new-request-section" id="newRequestPage">
             <h2>New Request</h2>
-            <form id="newRequestForm">
+            <form id="requestForm">
+                <label for="clientId">Client ID</label>
+                <input type="number" id="clientId" name="clientId" required>
+
                 <label for="propertyAddress">Property Address</label>
                 <input type="text" id="propertyAddress" name="propertyAddress" required>
 
-                <label for="requestDetails">Request Details</label>
-                <textarea id="requestDetails" name="requestDetails" required></textarea>
+                <label for="squareFeet">Square Feet</label>
+                <input type="number" id="squareFeet" name="squareFeet" required>
 
-                <label for="requestNote">Note (Optional)</label>
-                <textarea id="requestNote" name="requestNote"></textarea>
+                <label for="proposedPrice">Proposed Price</label>
+                <input type="number" id="proposedPrice" name="proposedPrice" required>
+
+                <label for="note">Note (Optional)</label>
+                <textarea id="note" name="note"></textarea>
+
+                <label for="imageUrls">Paste Image URLs (one per line)</label>
+                <textarea id="imageUrls" name="imageUrls" required></textarea>
 
                 <button type="submit">Submit Request</button>
             </form>
@@ -209,74 +237,240 @@
     </div>
 
     <script>
-        const menu = document.querySelector('.menu');
-        const registerClientForm = document.getElementById('registerClientForm');
-        const lookupStatusPage = document.getElementById('lookupStatusPage');
-        const newRequestPage = document.getElementById('newRequestPage');
-        const simulatedChatHistory = document.getElementById('simulatedChatHistory');
-        const historyTable = document.getElementById('historyTable');
 
-        const registerClientBtn = document.getElementById('registerClientBtn');
-        const lookupStatusBtn = document.getElementById('lookupStatusBtn');
-        const newRequestBtn = document.getElementById('newRequestBtn');
-        const backToMenuFromLookup = document.getElementById('backToMenuFromLookup');
-        const backToMenuFromNewRequest = document.getElementById('backToMenuFromNewRequest');
-        const backToMenuFromRegister = document.getElementById('backToMenuFromRegister');
+        const apiBaseUrl = "http://localhost:3000"; // Change this to match your backend URL
 
+        // Setup navigation for different pages
 
-        // Show the Register Client form
-        registerClientBtn.addEventListener('click', () => {
-            menu.classList.remove('active');
-            registerClientForm.classList.add('active');
+        function setupNavigation() {
+            const menu = document.querySelector('.menu');
+            const registerClientForm = document.getElementById('registerClientForm');
+            const lookupStatusPage = document.getElementById('lookupStatusPage');
+            const newRequestPage = document.getElementById('newRequestPage');
+
+            const registerClientBtn = document.getElementById('registerClientBtn');
+            const lookupStatusBtn = document.getElementById('lookupStatusBtn');
+            const newRequestBtn = document.getElementById('newRequestBtn');
+            const backToMenuFromLookup = document.getElementById('backToMenuFromLookup');
+            const backToMenuFromNewRequest = document.getElementById('backToMenuFromNewRequest');
+            const backToMenuFromRegister = document.getElementById('backToMenuFromRegister');
+
+            // Helper function to switch between sections
+            function switchSection(hideSection, showSection) {
+                hideSection.classList.remove('active');
+                showSection.classList.add('active');
+            }
+
+            // Ensure all elements exist before adding event listeners
+            if (registerClientBtn && menu && registerClientForm) {
+                registerClientBtn.addEventListener('click', () => {
+                    switchSection(menu, registerClientForm);
+                });
+            }
+
+            if (newRequestBtn && menu && newRequestPage) {
+                newRequestBtn.addEventListener('click', () => {
+                    switchSection(menu, newRequestPage);
+                });
+            }
+
+            if (lookupStatusBtn && menu && lookupStatusPage) {
+                lookupStatusBtn.addEventListener('click', () => {
+                    switchSection(menu, lookupStatusPage);
+                });
+            }
+
+            // Back to Menu buttons
+            if (backToMenuFromLookup && lookupStatusPage && menu) {
+                backToMenuFromLookup.addEventListener('click', () => {
+                    switchSection(lookupStatusPage, menu);
+                });
+            }
+
+            if (backToMenuFromRegister && registerClientForm && menu) {
+                backToMenuFromRegister.addEventListener('click', () => {
+                    switchSection(registerClientForm, menu);
+                });
+            }
+
+            if (backToMenuFromNewRequest && newRequestPage && menu) {
+                backToMenuFromNewRequest.addEventListener('click', () => {
+                    switchSection(newRequestPage, menu);
+                });
+            }
+        }
+
+        // Call the function when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', setupNavigation);
+
+        // Client Registration
+        document.getElementById("registerClientForm")?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const data = {
+                first_name: document.getElementById("firstName").value,
+                last_name: document.getElementById("lastName").value,
+                phone_number: document.getElementById("phoneNumber").value,
+                credit_card_number: document.getElementById("credit_card_number").value,
+                expiration_date: document.getElementById("expirationDate").value,
+                security_code: document.getElementById("securityCode").value,
+                address: document.getElementById("address").value,
+                email: document.getElementById("email").value,
+            };
+
+            const response = await fetch(`${apiBaseUrl}/register-client`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert("Registration Successful!");
+                event.target.reset();
+            } else {
+                alert("Registration Failed!");
+            }
         });
 
-        // Show the New Request form
-        newRequestBtn.addEventListener('click', () => {
-            menu.classList.remove('active');
-            newRequestPage.classList.add('active');
-        });
+        // Submit Request
+        document.getElementById("requestForm")?.addEventListener("submit", async (event) => {
+            event.preventDefault();
 
-        // Show the Lookup Status form
-        lookupStatusBtn.addEventListener('click', () => {
-            menu.classList.remove('active');
-            lookupStatusPage.classList.add('active');
-        });
-
-        // Back to Menu button for Lookup Status
-        backToMenuFromLookup.addEventListener('click', () => {
-            lookupStatusPage.classList.remove('active');
-            menu.classList.add('active');
-        });
-
-        // Back to Menu button for New Register
-        backToMenuFromRegister.addEventListener('click', () => {
-            registerClientForm.classList.remove('active');
-            menu.classList.add('active');
-        });
-
-
-        // Back to Menu button for New Request
-        backToMenuFromNewRequest.addEventListener('click', () => {
-            newRequestPage.classList.remove('active');
-            menu.classList.add('active');
-        });
-
-
-        // Handle New Request form submission
-        document.getElementById("newRequestForm").addEventListener("submit", function (e) {
-            e.preventDefault(); // Prevent page reload
+            const clientId = document.getElementById("clientId").value;
             const propertyAddress = document.getElementById("propertyAddress").value;
-            const requestDetails = document.getElementById("requestDetails").value;
-            const requestNote = document.getElementById("requestNote").value;
+            const squareFeet = document.getElementById("squareFeet").value;
+            const proposedPrice = document.getElementById("proposedPrice").value;
+            const note = document.getElementById("note").value;
 
-            // Simulate adding the new request (for now we just log it)
-            console.log("New Request Submitted:");
-            console.log("Property Address:", propertyAddress);
-            console.log("Request Details:", requestDetails);
-            console.log("Request Note:", requestNote);
+            // Collect image URLs from textarea
+            const imageUrls = document.getElementById("imageUrls").value.split('\n').map(url => url.trim()).filter(url => url);
 
-            alert("Request submitted successfully!");
+            const requestData = {
+                client_id: clientId,
+                property_address: propertyAddress,
+                square_feet: squareFeet,
+                proposed_price: proposedPrice,
+                note,
+                image_urls: imageUrls,
+            };
+
+            const response = await fetch(`${apiBaseUrl}/submit-request`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData),
+            });
+
+            if (response.ok) {
+                alert("Request Submitted!");
+                document.getElementById("requestForm").reset();
+            } else {
+                alert("Failed to Submit Request!");
+            }
         });
+
+
+
+        document.getElementById("lookupForm")?.addEventListener("submit", async (event) => {
+            const phoneNumberInput = document.getElementById("phoneNumberLookup");
+            const phoneNumber = phoneNumberInput.value.trim();
+            event.preventDefault();
+
+            if (!phoneNumber) {
+                alert("Please enter a phone number");
+                phoneNumberInput.focus();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/lookup-status`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ phone_number: phoneNumber }),
+                });
+
+                const { data, found } = await response.json();
+                console.log('Full lookup data:', data);
+                // Hide simulated chat and reset sections
+                document.getElementById('simulatedChatHistory').style.display = 'none';
+                const requestDetailsSection = document.getElementById('requestDetailsSection');
+                const quoteSection = document.getElementById('quoteSection');
+                requestDetailsSection.style.display = 'none';
+                quoteSection.style.display = 'none';
+
+                if (!found) {
+                    document.getElementById('simulatedChatHistory').style.display = 'block';
+                    return;
+                }
+
+                // Populate request details
+                const firstRecord = data[0];
+                document.getElementById('clientNameDisplay').textContent =
+                    `${firstRecord.first_name} ${firstRecord.last_name}`;
+                document.getElementById('propertyAddressDisplay').textContent =
+                    firstRecord.property_address;
+                document.getElementById('squareFeetDisplay').textContent =
+                    firstRecord.square_feet;
+                document.getElementById('requestStatusDisplay').textContent =
+                    firstRecord.status;
+                document.getElementById('submissionDateDisplay').textContent =
+                    new Date(firstRecord.submission_date).toLocaleDateString();
+
+                // Show request details section
+                requestDetailsSection.style.display = 'block';
+
+                // Check if quote exists
+                if (firstRecord.quote_id) {
+                    document.getElementById('quotePriceDisplay').textContent =
+                        `$${firstRecord.proposed_price.toFixed(2)}`;
+                    document.getElementById('quoteDescriptionDisplay').textContent =
+                        firstRecord.latest_contractor_note;
+                    document.getElementById('quoteStatusDisplay').textContent =
+                        firstRecord.quote_status;
+
+                    // Set quote_id as a data attribute for later use
+                    document.getElementById('quoteStatusDisplay').dataset.quoteId = firstRecord.quote_id;
+
+                    const quoteActionButtons = document.getElementById('quoteActionButtons');
+                    quoteActionButtons.style.display = 'block';
+                    quoteSection.style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Error during lookup:", error);
+                alert("An error occurred during the lookup");
+            }
+        });
+
+        // Quote action event listeners
+        document.getElementById('acceptQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Accepted'));
+        document.getElementById('denyQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Denied'));
+        document.getElementById('negotiateQuoteBtn')?.addEventListener('click', () => handleQuoteAction('In Negotiation'));
+
+        async function handleQuoteAction(action) {
+            const quoteId = document.getElementById('quoteStatusDisplay').dataset.quoteId;
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/quote-action`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ quote_id: quoteId, action })
+                });
+
+                const result = await response.json();
+                alert(result.message);
+
+                // Update quote status display
+                document.getElementById('quoteStatusDisplay').textContent = action;
+            } catch (error) {
+                console.error('Error processing quote action:', error);
+                alert('Failed to process quote action');
+            }
+        }
+
+
     </script>
+
 </body>
 </html>
