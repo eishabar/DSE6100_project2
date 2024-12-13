@@ -347,6 +347,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Fetch Quotes
     fetchAndDisplayQuotes();
 
+    // Fetch orders 
+    fetchAndDisplayOrders();
+
+    // Fetch bills
+    fetchAndDisplayBills();
+
     // Attach Filter Button Event Listener
     const filterButton = document.getElementById('filterButton');
     if (filterButton) {
@@ -378,6 +384,12 @@ function setupTabNavigation() {
                     break;
                 case 'quotes':
                     fetchAndDisplayQuotes();
+                    break;
+                case 'orders':
+                    fetchAndDisplayOrders();
+                    break;
+                case 'bills':
+                    fetchAndDisplayBills();
                     break;
                 // Add other tab data fetching as needed
             }
@@ -465,6 +477,7 @@ async function createQuote(requestId) {
         }
     }
 }
+
 
 
 // Update the fetchRequests function to conditionally show Edit button
@@ -579,14 +592,180 @@ async function fetchAndDisplayQuotes() {
     }
 }
 
+// Fetch and display orders
+async function fetchAndDisplayOrders() {
+    try {
+        const url = 'http://localhost:3000/orders';
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch orders');
+        }
+
+        const orders = await response.json();
+        const ordersTableBody = document.getElementById('ordersTableBody');
+        
+        // If the element is null, throw a more specific error
+        if (!ordersTableBody) {
+            throw new Error('Could not find ordersTableBody element. Check your HTML structure.');
+        }
+
+        // Clear the existing table body
+        ordersTableBody.innerHTML = '';
+
+        // Populate the table with the fetched data
+        orders.forEach(order => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${order.order_id}</td>
+                <td>${order.quote_id}</td>
+                <td>${order.status}</td>
+                <td>${new Date(order.timestamp).toLocaleDateString()}</td>
+                <td>
+                    <button class="action" onclick="openModal('orderDetails', ${order.order_id})">Details</button>
+                </td>
+            `;
+            ordersTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error fetching and displaying orders:', error);
+        // Fallback error handling
+        const errorContainer = document.querySelector('#orders table tbody');
+        if (errorContainer) {
+            errorContainer.innerHTML = `<tr><td colspan="5">Error loading orders: ${error.message}</td></tr>`;
+        } else {
+            console.error('Could not find a place to display the error message');
+        }
+    }
+}
+
+// Add order details fetching function
+async function fetchOrderDetails(orderId) {
+    try {
+        const response = await fetch(`http://localhost:3000/orders/${orderId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch order details');
+        }
+        const details = await response.json();
+        
+        // Populate modal with details
+        const orderDetailsContent = document.querySelector('#orderDetails .modal-content');
+        orderDetailsContent.innerHTML = `
+            <p><strong>Order ID:</strong> ${details.order_id}</p>
+            <p><strong>Quote ID:</strong> ${details.quote_id}</p>
+            <p><strong>Status:</strong> ${details.status}</p>
+            <p><strong>Order Date:</strong> ${new Date(details.timestamp).toLocaleString()}</p>
+            <!-- Add more details as available in your backend response -->
+        `;
+    } catch (error) {
+        console.error('Error loading order details:', error);
+        const orderDetailsContent = document.querySelector('#orderDetails .modal-content');
+        orderDetailsContent.innerHTML = 
+            `<p>Error loading details: ${error.message}</p>`;
+    }
+}
+
+// Fetch and display bills
+async function fetchAndDisplayBills() {
+    try {
+        const url = 'http://localhost:3000/bills';
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch bills');
+        }
+
+        const bills = await response.json();
+        const billsTableBody = document.getElementById('billsTableBody');
+        
+        // If the element is null, throw a more specific error
+        if (!billsTableBody) {
+            throw new Error('Could not find billsTableBody element. Check your HTML structure.');
+        }
+
+        // Clear the existing table body
+        billsTableBody.innerHTML = '';
+
+        // Populate the table with the fetched data
+        bills.forEach(bill => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${bill.bill_id}</td>
+                <td>${bill.order_id}</td>
+                <td>$${parseFloat(bill.initial_amount).toFixed(2)}</td>
+                <td>$${parseFloat(bill.final_amount).toFixed(2)}</td>
+                <td>${bill.status}</td>
+                <td>
+                    <button class="action" onclick="openModal('billDetails', ${bill.bill_id})">Details</button>
+                    <button class="action" onclick="startBillNegotiation(${bill.bill_id})">Negotiate</button>
+                </td>
+            `;
+            billsTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error fetching and displaying bills:', error);
+        // Fallback error handling
+        const errorContainer = document.querySelector('#bills table tbody');
+        if (errorContainer) {
+            errorContainer.innerHTML = `<tr><td colspan="6">Error loading bills: ${error.message}</td></tr>`;
+        } else {
+            console.error('Could not find a place to display the error message');
+        }
+    }
+}
+
+// Fetch bill details for modal
+async function fetchBillDetails(billId) {
+    try {
+        const response = await fetch(`http://localhost:3000/bills/${billId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch bill details');
+        }
+        const details = await response.json();
+        
+        // Populate modal with details
+        const billDetailsContent = document.querySelector('#billDetails .modal-content');
+        billDetailsContent.innerHTML = `
+            <p><strong>Bill ID:</strong> ${details.bill_id}</p>
+            <p><strong>Order ID:</strong> ${details.order_id}</p>
+            <p><strong>Initial Amount:</strong> $${parseFloat(details.initial_amount).toFixed(2)}</p>
+            <p><strong>Final Amount:</strong> $${parseFloat(details.final_amount).toFixed(2)}</p>
+            <p><strong>Status:</strong> ${details.status}</p>
+            <p><strong>Due Date:</strong> ${new Date(details.due_date).toLocaleDateString()}</p>
+            <p><strong>Client Note:</strong> ${details.client_note || 'No additional notes'}</p>
+            <p><strong>Timestamp:</strong> ${new Date(details.timestamp).toLocaleString()}</p>
+        `;
+    } catch (error) {
+        console.error('Error loading bill details:', error);
+        const billDetailsContent = document.querySelector('#billDetails .modal-content');
+        billDetailsContent.innerHTML = 
+            `<p>Error loading details: ${error.message}</p>`;
+    }
+}
+
+// Function to start bill negotiation
+function startBillNegotiation(billId) {
+    // Implement negotiation logic or open a negotiation modal
+    console.log(`Start negotiation for bill ID: ${billId}`);
+    alert(`Negotiation for Bill ID ${billId} will be implemented`);
+}
 
 // Modify existing openModal function
-function openModal(modalType, requestId) {
+function openModal(modalType, itemId) {
     const modal = document.getElementById(modalType);
     if (modal) {
         modal.classList.add('active');
-        if (modalType === 'requestDetails') {
-            fetchRequestDetails(requestId);
+        switch(modalType) {
+            case 'requestDetails':
+                fetchRequestDetails(itemId);
+                break;
+            case 'orderDetails':
+                fetchOrderDetails(itemId);
+                break;
+            case 'billDetails':
+                fetchBillDetails(itemId);
+                break;
+            // Add other modal types as needed
         }
     }
 }
