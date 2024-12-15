@@ -1,204 +1,409 @@
-const apiBaseUrl = "http://localhost:3000"; // Change this to match your backend URL
+// Import required modules
+const express = require('express'); // Web framework for Node.js
+const cors = require('cors'); // Middleware for handling Cross-Origin Resource Sharing
+const dotenv = require('dotenv'); // Module for loading environment variables
+const dbService = require('./dbService'); // Custom database service module
+dotenv.config(); // Load environment variables from .env file
 
+// Initialize the Express application
+const app = express();
 
+// Middleware setup
+app.use(cors()); // Enable CORS for handling requests from different origins
+app.use(express.json()); // Parse incoming JSON requests
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded payloads
 
-function setupNavigation() {
-    const menu = document.querySelector('.menu');
-    const registerClientForm = document.getElementById('registerClientForm');
-    const lookupStatusPage = document.getElementById('lookupStatusPage');
-    const newRequestPage = document.getElementById('newRequestPage');
+// === CLIENT ROUTES ===
 
-    const registerClientBtn = document.getElementById('registerClientBtn');
-    const lookupStatusBtn = document.getElementById('lookupStatusBtn');
-    const newRequestBtn = document.getElementById('newRequestBtn');
-    const backToMenuFromLookup = document.getElementById('backToMenuFromLookup');
-    const backToMenuFromNewRequest = document.getElementById('backToMenuFromNewRequest');
-    const backToMenuFromRegister = document.getElementById('backToMenuFromRegister');
+// Endpoint to register a new client
+app.post('/register-client', (req, res) => {
+    console.log("Endpoint: register a new client");
+    console.log("Request body:", req.body);
 
-    // Helper function to switch between sections
-    function switchSection(hideSection, showSection) {
-        hideSection.classList.remove('active');
-        showSection.classList.add('active');
+    // Extract client information from the request body
+    const { first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email } = req.body;
+
+    // Validate required fields
+    if (!first_name || !last_name || !phone_number || !credit_card_number || !expiration_date || !security_code || !address || !email) {
+        console.log("Validation error: Missing required fields");
+        return res.status(400).json({ error: 'All fields are required: firstName, lastName, address' });
     }
 
-    // Show the Register Client form
-    registerClientBtn.addEventListener('click', () => {
-        switchSection(menu, registerClientForm);
-    });
-
-    // Show the New Request form
-    newRequestBtn.addEventListener('click', () => {
-        switchSection(menu, newRequestPage);
-    });
-
-    // Show the Lookup Status form
-    lookupStatusBtn.addEventListener('click', () => {
-        switchSection(menu, lookupStatusPage);
-    });
-
-    // Back to Menu buttons
-    backToMenuFromLookup.addEventListener('click', () => {
-        switchSection(lookupStatusPage, menu);
-    });
-
-    backToMenuFromRegister.addEventListener('click', () => {
-        switchSection(registerClientForm, menu);
-    });
-
-    backToMenuFromNewRequest.addEventListener('click', () => {
-        switchSection(newRequestPage, menu);
-    });
-}
-
-// Call the function to set up navigation
-setupNavigation();
-
-
-
-// Client Registration
-document.getElementById("registerClientForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = {
-        first_name: document.getElementById("firstName").value,
-        last_name: document.getElementById("lastName").value,
-        phone_number: document.getElementById("phoneNumber").value,
-        credit_card_number: document.getElementById("credit_card_number").value,
-        expiration_date: document.getElementById("expirationDate").value,
-        security_code: document.getElementById("securityCode").value,
-        address: document.getElementById("address").value,
-        email: document.getElementById("email").value,
-    };
-
-    const response = await fetch(`${apiBaseUrl}/register-client`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-
-    if (response.ok) {
-        alert("Registration Successful!");
-        event.target.reset();
-    } else {
-        alert("Registration Failed!");
-    }
+    // Get a database instance and register the client
+    const db = dbService.getDbServiceInstance();
+    db.registerClient(first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email)
+        .then(data => {
+            console.log("New client registered with ID:", data.insertId);
+            res.status(201).json({ success: true, clientId: data.insertId });
+        })
+        .catch(err => {
+            console.log("Error in register:", err);
+            res.status(500).json({ error: 'Error registering client' });
+        });
 });
 
-// Submit Request
-document.getElementById("requestForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
+// Endpoint to submit a new service request
+app.post('/submit-request', (req, res) => {
+    console.log("Endpoint: submit a new request");
+    console.log("Request body:", req.body);
 
-    const clientId = document.getElementById("clientId").value;
-    const propertyAddress = document.getElementById("propertyAddress").value;
-    const squareFeet = document.getElementById("squareFeet").value;
-    const proposedPrice = document.getElementById("proposedPrice").value;
-    const note = document.getElementById("note").value;
+    // Extract request details
+    const { client_id, property_address, square_feet, proposed_price, note, image_urls } = req.body;
 
-    // Collect image URLs from textarea
-    const imageUrls = document.getElementById("imageUrls").value.split('\n').map(url => url.trim()).filter(url => url);
-
-    const requestData = {
-        client_id: clientId,
-        property_address: propertyAddress,
-        square_feet: squareFeet,
-        proposed_price: proposedPrice,
-        note,
-        image_urls: imageUrls,
-    };
-
-    const response = await fetch(`${apiBaseUrl}/submit-request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData),
-    });
-
-    if (response.ok) {
-        alert("Request Submitted!");
-        document.getElementById("requestForm").reset();
-    } else {
-        alert("Failed to Submit Request!");
+    // Validate required fields
+    if (!client_id || !property_address || !Array.isArray(image_urls)) {
+        console.log("Validation error: Missing required fields or invalid image URLs");
+        return res.status(400).json({ error: 'Client ID, property address, and valid image URLs are required' });
     }
+
+    // Get a database instance and submit the request
+    const db = dbService.getDbServiceInstance();
+    db.submitRequest(client_id, property_address, square_feet, proposed_price, note, image_urls)
+        .then(data => {
+            console.log("Request submitted with ID:", data.requestId);
+            res.status(201).json({ success: true, requestId: data.requestId });
+        })
+        .catch(err => {
+            console.log("Error in submit-request:", err);
+            res.status(500).json({ error: 'Error submitting request' });
+        });
 });
 
-// lookup section
-document.getElementById("lookupForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    const phoneNumber = document.getElementById("phoneNumber").value;
+// Endpoint to lookup the status of a request by phone number
+app.post('/lookup-status', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const { phone_number } = req.body;
 
     try {
-        const response = await fetch(`${apiBaseUrl}/lookup-status`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone_number: phoneNumber }),
+        const requestHistory = await db.getRequestHistory(phone_number);
+
+        res.status(200).json({
+            data: requestHistory,
+            found: requestHistory.length > 0
+        });
+    } catch (error) {
+        console.error('Error fetching request history:', error);
+        res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to perform actions on quotes (e.g., approve, reject)
+app.post('/quote-action', async (req, res) => {
+    const { quote_id, action } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+        await db.updateQuoteStatus(quote_id, action);
+
+        res.status(200).json({
+            message: `Quote ${action} successfully`
+        });
+    } catch (error) {
+        console.error('Error updating quote status:', error);
+        res.status(500).json({
+            message: 'Error updating quote',
+            error: error.message
+        });
+    }
+});
+
+
+// Endpoint to create a work order when quote is accepted
+app.post('/create-work-order', async (req, res) => {
+    const { quote_id, proposed_price } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        // Create work order
+        const order_id = await db.createWorkOrder(quote_id);
+
+        // Create initial bill
+        await db.createBill(order_id, proposed_price);
+
+        res.status(200).json({
+            message: 'Work order created successfully',
+            order_id: order_id
+        });
+    } catch (error) {
+        console.error('Error creating work order:', error);
+        res.status(500).json({
+            message: 'Error creating work order',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to complete a work order
+app.post('/complete-work-order', async (req, res) => {
+    const { order_id } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        // Mark work order as completed
+        await db.completeWorkOrder(order_id);
+
+        res.status(200).json({
+            message: 'Work order completed successfully'
+        });
+    } catch (error) {
+        console.error('Error completing work order:', error);
+        res.status(500).json({
+            message: 'Error completing work order',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to get work order and bill details
+app.post('/get-work-order-details', async (req, res) => {
+    const { quote_id } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+        const workOrderDetails = await db.getWorkOrderDetails(quote_id);
+
+        res.status(200).json({
+            workOrderDetails: workOrderDetails || null
+        });
+    } catch (error) {
+        console.error('Error fetching work order details:', error);
+        res.status(500).json({
+            message: 'Error fetching work order details',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to create quote negotiation
+app.post('/create-quote-negotiation', async (req, res) => {
+    const {
+        quote_id,
+        client_note,
+        price_offer,
+        work_start_date,
+        work_end_date
+    } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        const negotiationId = await db.createQuoteNegotiation({
+            quote_id,
+            client_note,
+            price_offer,
+            work_start_date,
+            work_end_date
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            // Render the lookup result here
-            console.log(data);
-        } else {
-            alert("Lookup failed!");
-        }
+        res.status(200).json({
+            message: 'Quote negotiation created successfully',
+            negotiation_id: negotiationId
+        });
     } catch (error) {
-        console.error("Error during lookup:", error);
+        console.error('Error creating quote negotiation:', error);
+        res.status(500).json({
+            message: 'Error creating quote negotiation',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint for comprehensive lookup of client records by phone number
+app.post('/comprehensive-lookup', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const { phone_number } = req.body;
+
+    try {
+        // Validate phone number input
+        if (!phone_number) {
+            return res.status(400).json({ error: 'Phone number is required' });
+        }
+
+        // Retrieve comprehensive client records
+        const comprehensiveLookup = await db.getComprehensiveLookup(phone_number);
+
+        if (!comprehensiveLookup || comprehensiveLookup.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        res.status(200).json(comprehensiveLookup);
+    } catch (error) {
+        console.error('Error in comprehensive lookup:', error);
+        res.status(500).json({
+            message: 'Error performing comprehensive lookup',
+            error: error.message
+        });
     }
 });
 
 
-//contracter management page
 
-document.addEventListener('DOMContentLoaded', function () {
-    setupNavigation();  // Make sure the navigation setup happens only when the DOM is ready
-    fetchRequests();  // Fetch requests data
+// === CONTRACTOR ROUTES ===
 
-    // Setup navigation
-    function setupNavigation() {
-        const tabButtons = document.querySelectorAll('.tab-btn');
+// Endpoint to get all requests
+app.get('/requests', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllRequests();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching requests:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
 
-        // Ensure that tabButtons are found before adding event listeners
-        if (tabButtons.length > 0) {
-            tabButtons.forEach(button => {
-                button.addEventListener('click', function () {
-                    // Handle tab switch
-                    const targetTab = document.getElementById(button.getAttribute('data-tab'));
-                    if (targetTab) {
-                        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-                        targetTab.classList.add('active');
+// Endpoint to get all orders
+app.get('/orders', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllOrders();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
 
-                        // Change active tab style
-                        tabButtons.forEach(btn => btn.classList.remove('active'));
-                        button.classList.add('active');
-                    }
-                });
-            });
+// Endpoint to get details of a specific request by its ID
+app.get('/requests/:requestId', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const requestId = req.params.requestId;
+        const requestDetails = await db.getRequestDetails(requestId);
+        res.json(requestDetails);
+    } catch (error) {
+        console.error('Error fetching request details:', error);
+        if (error.message === 'No request found with this ID') {
+            res.status(404).send('Request not found');
+        } else {
+            res.status(500).send('Error fetching request details');
         }
     }
+});
 
-    // Fetch requests data
-    function fetchRequests() {
-        fetch('http://localhost:3000/requests')
-            .then(response => response.json())
-            .then(data => {
-                const requestsTableBody = document.getElementById('requestsTableBody');
-                requestsTableBody.innerHTML = '';  // Clear previous data
-                data.forEach(request => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${request.request_id}</td>
-                        <td>${request.client_name}</td>
-                        <td>${request.address}</td>
-                        <td>${request.status}</td>
-                        <td><button class="action">View Details</button></td>
-                    `;
-                    requestsTableBody.appendChild(row);
-                });
-            })
-            .catch(error => console.error('Error fetching requests:', error));
+// Endpoint to get all bills
+app.get('/bills', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllBills();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching bills:', error);
+        res.status(500).send('Error fetching data');
     }
 });
 
+// Endpoint to get specific bill details
+app.get('/bills/:billId', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const billId = req.params.billId;
+        const result = await db.getBillDetails(billId);
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching bill details:', error);
+        res.status(500).send('Error fetching bill details');
+    }
+});
 
+// Endpoint to create a quote for a specific request
+app.post('/quotes', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const {
+            requestId,
+            initialPrice,
+            proposedPrice,
+            workStartDate,
+            workEndDate,
+            latestContractorNote
+        } = req.body;
 
+        // Validate input
+        if (!requestId || !initialPrice || !proposedPrice) {
+            return res.status(400).json({ error: 'RequestId, initial price, and proposed price are required' });
+        }
 
+        const quoteId = await db.createQuote(
+            requestId,
+            initialPrice,
+            proposedPrice,
+            workStartDate,
+            workEndDate,
+            latestContractorNote
+        );
+        res.status(201).json({ quoteId });
+    } catch (error) {
+        console.error('Error creating quote:', error);
+        res.status(500).json({
+            error: 'Error creating quote',
+            details: error.message
+        });
+    }
+});
 
+// Endpoint to get all quotes
+app.get('/getquotes', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllquotes();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
 
+// Endpoint to update the status of a request by its ID
+app.patch('/requests/:requestId/status', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const { requestId } = req.params;
+        const { status } = req.body;
+
+        // Validate input
+        if (!status) {
+            return res.status(400).json({ error: 'Status is required' });
+        }
+
+        // Use the database service method to update status
+        const result = await db.updateRequestStatus(requestId, status);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Request not found' });
+        }
+
+        res.json({ message: 'Status updated successfully' });
+    } catch (error) {
+        console.error('Error updating request status:', error);
+        res.status(500).json({
+            error: 'Failed to update status',
+            details: error.message
+        });
+    }
+});
+
+// Endpoint to get the most active client(s) for David Smith
+app.get('/clients/most-active', (req, res) => {
+    console.log("Endpoint: Get most active clients for David Smith");
+
+    const db = dbService.getDbServiceInstance();
+    db.getMostActiveClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching most active clients:", err);
+            res.status(500).json({ error: 'Error fetching most active clients' });
+        });
+});
+
+// Start the server on port 3000
+app.listen(3000, () => {
+    console.log("Server is running on port 3000.");
+});

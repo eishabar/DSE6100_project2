@@ -146,34 +146,12 @@
 
         <!-- Tab Navigation -->
         <div class="tabs">
-            <button class="tab-btn" data-tab="clients">Clients</button>
             <button class="tab-btn active" data-tab="requests">Requests</button>
             <button class="tab-btn" data-tab="quotes">Quotes</button>
             <button class="tab-btn" data-tab="orders">Orders</button>
             <button class="tab-btn" data-tab="bills">Bills</button>
-            <button class="tab-btn" data-tab="revenue-report">Revenue Report</button>
+            <button class="tab-btn" data-tab="reports">Reports</button>
         </div>
-
-        <div id="clients" class="tab-content">
-            <h2>Clients</h2>
-            <div class="filters">
-                <button class="action" id="prospectiveClients">Prospective Clients</button>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Client ID</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>Address</th>
-                    </tr>
-                </thead>
-            </table>
-            <div id="clientsTable">
-                <!-- Dynamic Client List -->
-            </div>
-        </div>
-
 
         <div id="requests" class="tab-content active">
             <h2>Requests</h2>
@@ -184,8 +162,6 @@
                     <option value="submitted">Submitted</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
-                    <option value="Difficult-clients">Bad Clients</option>
-                    <option value="Big-Driveway">Bad Clients</option>
                 </select>
                 <button class="action" id="filterButton">Filter</button>
             </div>
@@ -195,7 +171,6 @@
                         <th>Request ID</th>
                         <th>Client ID</th>
                         <th>Address</th>
-                        <th>SquareFeet</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -217,8 +192,6 @@
                     <option value="accepted">Accepted</option>
                     <option value="declined">Declined</option>
                 </select>
-                <input type="date" id="quoteStartDate" placeholder="Start Date">
-                <input type="date" id="quoteEndDate" placeholder="End Date">
                 <button class="action">Filter</button>
             </div>
             <table>
@@ -249,9 +222,7 @@
                     <option value="">All Statuses</option>
                     <option value="in-progress">In Progress</option>
                     <option value="completed">Completed</option>
-                    <option value="most-orders">Most Orders by Client</option>
                 </select>
-   
                 <button class="action">Filter</button>
             </div>
             <table>
@@ -283,9 +254,6 @@
                     <option value="">All Statuses</option>
                     <option value="paid">Paid</option>
                     <option value="due">Due</option>
-                    <option value="overdue">Overdue Bills</option>
-                    <option value="good-clients">Good Clients</option>
-                    <option value="bad-clients">Bad Clients</option>
                 </select>
                 <button class="action">Filter</button>
             </div>
@@ -311,16 +279,24 @@
             </table>
         </div>
 
-        <div id="revenue-report" class="tab-content">
-            <h2>Revenue Report</h2>
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <h2>Reports</h2>
             <div class="filters">
-                <input type="date" id="startDate" placeholder="Start Date">
-                <input type="date" id="endDate" placeholder="End Date">
-                <button class="action" id="generateReport">Generate Report</button>
+                <!-- Buttons to trigger fetching of different reports -->
+                <button onclick="fetchBigClients()">Big Clients</button>
+                <button onclick="fetchDifficultClients()">Difficult Clients</button>
+                <button onclick="fetchThisMonthQuotes()">This Month's Quotes</button>
+                <button onclick="fetchProspectiveClients()">Prospective Clients</button>
+                <button onclick="fetchLargestDriveway()">Largest Driveway</button>
+                <button onclick="fetchOverdueBills()">Overdue Bills</button>
+                <button onclick="fetchBadClients()">Bad Clients</button>
+                <button onclick="fetchGoodClients()">Good Clients</button>
+                <button onclick="fetchRevenueReport()">Revenue Report</button>
             </div>
-            <div id="revenueReportContent">
-                <!-- Dynamic Revenue Report will be inserted here -->
-            </div>
+
+            <!-- Section to display the fetched data -->
+            <div id="clients-data"></div>
         </div>
 
 
@@ -381,6 +357,12 @@
                 // Fetch Quotes
                 fetchAndDisplayQuotes();
 
+                // Fetch orders
+                fetchAndDisplayOrders();
+
+                // Fetch bills
+                fetchAndDisplayBills();
+
                 // Attach Filter Button Event Listener
                 const filterButton = document.getElementById('filterButton');
                 if (filterButton) {
@@ -413,6 +395,12 @@
                             case 'quotes':
                                 fetchAndDisplayQuotes();
                                 break;
+                            case 'orders':
+                                fetchAndDisplayOrders();
+                                break;
+                            case 'bills':
+                                fetchAndDisplayBills();
+                                break;
                             // Add other tab data fetching as needed
                         }
                     });
@@ -430,14 +418,14 @@
 
                     // Populate modal with details
                     document.getElementById('requestDetailsContent').innerHTML = `
-                                <p><strong>Client Name:</strong> ${details.client_name}</p>
-                                <p><strong>Email:</strong> ${details.client_email}</p>
-                                <p><strong>Property Address:</strong> ${details.property_address}</p>
-                                <p><strong>Square Feet:</strong> ${details.square_feet}</p>
-                                <p><strong>Submission Date:</strong> ${details.submission_date}</p>
-                                <p><strong>Note:</strong> ${details.note || 'No additional notes'}</p>
-                                <p><strong>Status:</strong> ${details.status}</p>
-                            `;
+                        <p><strong>Client Name:</strong> ${details.client_name}</p>
+                        <p><strong>Email:</strong> ${details.client_email}</p>
+                        <p><strong>Property Address:</strong> ${details.property_address}</p>
+                        <p><strong>Square Feet:</strong> ${details.square_feet}</p>
+                        <p><strong>Submission Date:</strong> ${details.submission_date}</p>
+                        <p><strong>Note:</strong> ${details.note || 'No additional notes'}</p>
+                        <p><strong>Status:</strong> ${details.status}</p>
+                    `;
                 } catch (error) {
                     console.error('Error loading request details:', error);
                     document.getElementById('requestDetailsContent').innerHTML =
@@ -501,6 +489,7 @@
             }
 
 
+
             // Update the fetchRequests function to conditionally show Edit button
             async function fetchRequests() {
                 try {
@@ -526,17 +515,17 @@
                     requests.forEach((request) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                                    <td>${request.request_id}</td>
-                                    <td>${request.client_id}</td>
-                                    <td>${request.property_address}</td>
-                                    <td>${request.status}</td>
-                                    <td>
-                                        <button class="action" onclick="openModal('requestDetails', ${request.request_id})">View</button>
-                                        ${request.status.toLowerCase() === 'pending' ?
+                            <td>${request.request_id}</td>
+                            <td>${request.client_id}</td>
+                            <td>${request.property_address}</td>
+                            <td>${request.status}</td>
+                            <td>
+                                <button class="action" onclick="openModal('requestDetails', ${request.request_id})">View</button>
+                                ${request.status.toLowerCase() === 'pending' ?
                                 `<button class="action" onclick="createQuote(${request.request_id})">Create Quote</button>` :
                                 ''}
-                                    </td>
-                                `;
+                            </td>
+                        `;
                         tableBody.appendChild(row);
                     });
                 } catch (error) {
@@ -587,18 +576,18 @@
                     quotes.forEach(quote => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                                    <td>${quote.quote_id}</td>
-                                    <td>${quote.request_id}</td>
-                                    <td>${quote.initial_price}</td>
-                                    <td>${quote.proposed_price}</td>
-                                    <td>${quote.work_start_date || 'N/A'}</td>
-                                    <td>${quote.work_end_date || 'N/A'}</td>
-                                    <td>${quote.status}</td>
-                                    <td>
-                                        <button class="action" onclick="openModal('quoteDetails', ${quote.quote_id})">Details</button>
-                                        <button class="action" onclick="startNegotiation(${quote.quote_id})">Negotiate</button>
-                                    </td>
-                                `;
+                            <td>${quote.quote_id}</td>
+                            <td>${quote.request_id}</td>
+                            <td>${quote.initial_price}</td>
+                            <td>${quote.proposed_price}</td>
+                            <td>${quote.work_start_date || 'N/A'}</td>
+                            <td>${quote.work_end_date || 'N/A'}</td>
+                            <td>${quote.status}</td>
+                            <td>
+                                <button class="action" onclick="openModal('quoteDetails', ${quote.quote_id})">Details</button>
+                                <button class="action" onclick="startNegotiation(${quote.quote_id})">Negotiate</button>
+                            </td>
+                        `;
                         quotesTableBody.appendChild(row);
                     });
                 } catch (error) {
@@ -613,14 +602,180 @@
                 }
             }
 
+            // Fetch and display orders
+            async function fetchAndDisplayOrders() {
+                try {
+                    const url = 'http://localhost:3000/orders';
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch orders');
+                    }
+
+                    const orders = await response.json();
+                    const ordersTableBody = document.getElementById('ordersTableBody');
+
+                    // If the element is null, throw a more specific error
+                    if (!ordersTableBody) {
+                        throw new Error('Could not find ordersTableBody element. Check your HTML structure.');
+                    }
+
+                    // Clear the existing table body
+                    ordersTableBody.innerHTML = '';
+
+                    // Populate the table with the fetched data
+                    orders.forEach(order => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${order.order_id}</td>
+                            <td>${order.quote_id}</td>
+                            <td>${order.status}</td>
+                            <td>${new Date(order.timestamp).toLocaleDateString()}</td>
+                            <td>
+                                <button class="action" onclick="openModal('orderDetails', ${order.order_id})">Details</button>
+                            </td>
+                        `;
+                        ordersTableBody.appendChild(row);
+                    });
+                } catch (error) {
+                    console.error('Error fetching and displaying orders:', error);
+                    // Fallback error handling
+                    const errorContainer = document.querySelector('#orders table tbody');
+                    if (errorContainer) {
+                        errorContainer.innerHTML = `<tr><td colspan="5">Error loading orders: ${error.message}</td></tr>`;
+                    } else {
+                        console.error('Could not find a place to display the error message');
+                    }
+                }
+            }
+
+            // Add order details fetching function
+            async function fetchOrderDetails(orderId) {
+                try {
+                    const response = await fetch(`http://localhost:3000/orders/${orderId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch order details');
+                    }
+                    const details = await response.json();
+
+                    // Populate modal with details
+                    const orderDetailsContent = document.querySelector('#orderDetails .modal-content');
+                    orderDetailsContent.innerHTML = `
+                        <p><strong>Order ID:</strong> ${details.order_id}</p>
+                        <p><strong>Quote ID:</strong> ${details.quote_id}</p>
+                        <p><strong>Status:</strong> ${details.status}</p>
+                        <p><strong>Order Date:</strong> ${new Date(details.timestamp).toLocaleString()}</p>
+                        <!-- Add more details as available in your backend response -->
+                    `;
+                } catch (error) {
+                    console.error('Error loading order details:', error);
+                    const orderDetailsContent = document.querySelector('#orderDetails .modal-content');
+                    orderDetailsContent.innerHTML =
+                        `<p>Error loading details: ${error.message}</p>`;
+                }
+            }
+
+            // Fetch and display bills
+            async function fetchAndDisplayBills() {
+                try {
+                    const url = 'http://localhost:3000/bills';
+                    const response = await fetch(url);
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch bills');
+                    }
+
+                    const bills = await response.json();
+                    const billsTableBody = document.getElementById('billsTableBody');
+
+                    // If the element is null, throw a more specific error
+                    if (!billsTableBody) {
+                        throw new Error('Could not find billsTableBody element. Check your HTML structure.');
+                    }
+
+                    // Clear the existing table body
+                    billsTableBody.innerHTML = '';
+
+                    // Populate the table with the fetched data
+                    bills.forEach(bill => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${bill.bill_id}</td>
+                            <td>${bill.order_id}</td>
+                            <td>$${parseFloat(bill.initial_amount).toFixed(2)}</td>
+                            <td>$${parseFloat(bill.final_amount).toFixed(2)}</td>
+                            <td>${bill.status}</td>
+                            <td>
+                                <button class="action" onclick="openModal('billDetails', ${bill.bill_id})">Details</button>
+                                <button class="action" onclick="startBillNegotiation(${bill.bill_id})">Negotiate</button>
+                            </td>
+                        `;
+                        billsTableBody.appendChild(row);
+                    });
+                } catch (error) {
+                    console.error('Error fetching and displaying bills:', error);
+                    // Fallback error handling
+                    const errorContainer = document.querySelector('#bills table tbody');
+                    if (errorContainer) {
+                        errorContainer.innerHTML = `<tr><td colspan="6">Error loading bills: ${error.message}</td></tr>`;
+                    } else {
+                        console.error('Could not find a place to display the error message');
+                    }
+                }
+            }
+
+            // Fetch bill details for modal
+            async function fetchBillDetails(billId) {
+                try {
+                    const response = await fetch(`http://localhost:3000/bills/${billId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch bill details');
+                    }
+                    const details = await response.json();
+
+                    // Populate modal with details
+                    const billDetailsContent = document.querySelector('#billDetails .modal-content');
+                    billDetailsContent.innerHTML = `
+                        <p><strong>Bill ID:</strong> ${details.bill_id}</p>
+                        <p><strong>Order ID:</strong> ${details.order_id}</p>
+                        <p><strong>Initial Amount:</strong> $${parseFloat(details.initial_amount).toFixed(2)}</p>
+                        <p><strong>Final Amount:</strong> $${parseFloat(details.final_amount).toFixed(2)}</p>
+                        <p><strong>Status:</strong> ${details.status}</p>
+                        <p><strong>Due Date:</strong> ${new Date(details.due_date).toLocaleDateString()}</p>
+                        <p><strong>Client Note:</strong> ${details.client_note || 'No additional notes'}</p>
+                        <p><strong>Timestamp:</strong> ${new Date(details.timestamp).toLocaleString()}</p>
+                    `;
+                } catch (error) {
+                    console.error('Error loading bill details:', error);
+                    const billDetailsContent = document.querySelector('#billDetails .modal-content');
+                    billDetailsContent.innerHTML =
+                        `<p>Error loading details: ${error.message}</p>`;
+                }
+            }
+
+            // Function to start bill negotiation
+            function startBillNegotiation(billId) {
+                // Implement negotiation logic or open a negotiation modal
+                console.log(`Start negotiation for bill ID: ${billId}`);
+                alert(`Negotiation for Bill ID ${billId} will be implemented`);
+            }
 
             // Modify existing openModal function
-            function openModal(modalType, requestId) {
+            function openModal(modalType, itemId) {
                 const modal = document.getElementById(modalType);
                 if (modal) {
                     modal.classList.add('active');
-                    if (modalType === 'requestDetails') {
-                        fetchRequestDetails(requestId);
+                    switch (modalType) {
+                        case 'requestDetails':
+                            fetchRequestDetails(itemId);
+                            break;
+                        case 'orderDetails':
+                            fetchOrderDetails(itemId);
+                            break;
+                        case 'billDetails':
+                            fetchBillDetails(itemId);
+                            break;
+                        // Add other modal types as needed
                     }
                 }
             }
@@ -636,6 +791,125 @@
                 console.log(`Start negotiation for quote ID: ${quoteId}`);
                 // Implement negotiation logic here
             }
+
+
+            // Fetching Big Clients (most orders by David Smith)
+            function fetchBigClients() {
+                fetch('http://localhost:3000/clients/big-clients')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching big clients:', error));
+            }
+
+            // Fetching Difficult Clients
+            function fetchDifficultClients() {
+                fetch('http://localhost:3000/clients/difficult-clients')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching difficult clients:', error));
+            }
+
+            // Fetching This Month's Quotes (December 2024)
+            function fetchThisMonthQuotes() {
+                fetch('http://localhost:3000/this-month-quotes')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching this month\'s quotes:', error));
+            }
+
+            // Fetching Prospective Clients
+            function fetchProspectiveClients() {
+                fetch('http://localhost:3000/prospective-clients')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching prospective clients:', error));
+            }
+
+            // Fetching Largest Driveway
+            function fetchLargestDriveway() {
+                fetch('http://localhost:3000/largest-driveway')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching largest driveway:', error));
+            }
+
+            // Fetching Overdue Bills
+            function fetchOverdueBills() {
+                fetch('http://localhost:3000/overdue-bills')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching overdue bills:', error));
+            }
+
+            // Fetching Bad Clients
+            function fetchBadClients() {
+                fetch('http://localhost:3000/bad-clients')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching bad clients:', error));
+            }
+
+            // Fetching Good Clients (paid within 24 hours)
+            function fetchGoodClients() {
+                fetch('http://localhost:3000/good-clients')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching good clients:', error));
+            }
+
+            // Fetching Revenue Report
+            function fetchRevenueReport() {
+                fetch('http://localhost:3000/revenue-report')
+                    .then(response => response.json())
+                    .then(data => {
+                        displayData(data, 'clients-data');
+                    })
+                    .catch(error => console.log('Error fetching revenue report:', error));
+            }
+
+            // Display the fetched data in the HTML container
+            function displayData(data, containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = ''; // Clear previous content
+
+                console.log(data);  // Log the data to see its structure
+
+                if (data && Array.isArray(data) && data.length === 0) {
+                    container.innerHTML = '<p>No data found.</p>';
+                } else if (data && Array.isArray(data)) {
+                    data.forEach(item => {
+                        const itemDiv = document.createElement('div');
+                        let content = '';
+
+                        // Dynamically create the content based on the type of data
+                        for (const key in item) {
+                            content += `<p><strong>${key.replace('_', ' ').toUpperCase()}:</strong> ${item[key]}</p>`;
+                        }
+
+                        itemDiv.innerHTML = content;
+                        container.appendChild(itemDiv);
+                    });
+                } else {
+                    container.innerHTML = '<p>Error: Unexpected data format</p>';
+                }
+            }
+
         </script>
 
 </body>

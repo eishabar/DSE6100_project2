@@ -1,29 +1,36 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const dbService = require('./dbService');
-dotenv.config();
+// Import required modules
+const express = require('express'); // Web framework for Node.js
+const cors = require('cors'); // Middleware for handling Cross-Origin Resource Sharing
+const dotenv = require('dotenv'); // Module for loading environment variables
+const dbService = require('./dbService'); // Custom database service module
+dotenv.config(); // Load environment variables from .env file
 
+// Initialize the Express application
 const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Middleware setup
+app.use(cors()); // Enable CORS for handling requests from different origins
+app.use(express.json()); // Parse incoming JSON requests
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded payloads
 
+// === CLIENT ROUTES ===
 
-// Register a new client
+// Endpoint to register a new client
 app.post('/register-client', (req, res) => {
     console.log("Endpoint: register a new client");
     console.log("Request body:", req.body);
 
+    // Extract client information from the request body
     const { first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email } = req.body;
+
+    // Validate required fields
     if (!first_name || !last_name || !phone_number || !credit_card_number || !expiration_date || !security_code || !address || !email) {
         console.log("Validation error: Missing required fields");
         return res.status(400).json({ error: 'All fields are required: firstName, lastName, address' });
     }
 
+    // Get a database instance and register the client
     const db = dbService.getDbServiceInstance();
-
     db.registerClient(first_name, last_name, phone_number, credit_card_number, expiration_date, security_code, address, email)
         .then(data => {
             console.log("New client registered with ID:", data.insertId);
@@ -35,20 +42,22 @@ app.post('/register-client', (req, res) => {
         });
 });
 
-// Submit a new request
+// Endpoint to submit a new service request
 app.post('/submit-request', (req, res) => {
     console.log("Endpoint: submit a new request");
     console.log("Request body:", req.body);
 
+    // Extract request details
     const { client_id, property_address, square_feet, proposed_price, note, image_urls } = req.body;
 
+    // Validate required fields
     if (!client_id || !property_address || !Array.isArray(image_urls)) {
         console.log("Validation error: Missing required fields or invalid image URLs");
         return res.status(400).json({ error: 'Client ID, property address, and valid image URLs are required' });
     }
 
+    // Get a database instance and submit the request
     const db = dbService.getDbServiceInstance();
-
     db.submitRequest(client_id, property_address, square_feet, proposed_price, note, image_urls)
         .then(data => {
             console.log("Request submitted with ID:", data.requestId);
@@ -60,6 +69,7 @@ app.post('/submit-request', (req, res) => {
         });
 });
 
+// Endpoint to lookup the status of a request by phone number
 app.post('/lookup-status', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     const { phone_number } = req.body;
@@ -80,7 +90,7 @@ app.post('/lookup-status', async (req, res) => {
     }
 });
 
-// New route to handle quote actions
+// Endpoint to perform actions on quotes (e.g., approve, reject)
 app.post('/quote-action', async (req, res) => {
     const { quote_id, action } = req.body;
 
@@ -101,25 +111,165 @@ app.post('/quote-action', async (req, res) => {
 });
 
 
+// Endpoint to create a work order when quote is accepted
+app.post('/create-work-order', async (req, res) => {
+    const { quote_id, proposed_price } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        // Create work order
+        const order_id = await db.createWorkOrder(quote_id);
+
+        // Create initial bill
+        await db.createBill(order_id, proposed_price);
+
+        res.status(200).json({
+            message: 'Work order created successfully',
+            order_id: order_id
+        });
+    } catch (error) {
+        console.error('Error creating work order:', error);
+        res.status(500).json({
+            message: 'Error creating work order',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to complete a work order
+app.post('/complete-work-order', async (req, res) => {
+    const { order_id } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        // Mark work order as completed
+        await db.completeWorkOrder(order_id);
+
+        res.status(200).json({
+            message: 'Work order completed successfully'
+        });
+    } catch (error) {
+        console.error('Error completing work order:', error);
+        res.status(500).json({
+            message: 'Error completing work order',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to get work order and bill details
+app.post('/get-work-order-details', async (req, res) => {
+    const { quote_id } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+        const workOrderDetails = await db.getWorkOrderDetails(quote_id);
+
+        res.status(200).json({
+            workOrderDetails: workOrderDetails || null
+        });
+    } catch (error) {
+        console.error('Error fetching work order details:', error);
+        res.status(500).json({
+            message: 'Error fetching work order details',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint to create quote negotiation
+app.post('/create-quote-negotiation', async (req, res) => {
+    const {
+        quote_id,
+        client_note,
+        price_offer,
+        work_start_date,
+        work_end_date
+    } = req.body;
+
+    try {
+        const db = dbService.getDbServiceInstance();
+
+        const negotiationId = await db.createQuoteNegotiation({
+            quote_id,
+            client_note,
+            price_offer,
+            work_start_date,
+            work_end_date
+        });
+
+        res.status(200).json({
+            message: 'Quote negotiation created successfully',
+            negotiation_id: negotiationId
+        });
+    } catch (error) {
+        console.error('Error creating quote negotiation:', error);
+        res.status(500).json({
+            message: 'Error creating quote negotiation',
+            error: error.message
+        });
+    }
+});
+
+// Endpoint for comprehensive lookup of client records by phone number
+app.post('/comprehensive-lookup', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const { phone_number } = req.body;
+
+    try {
+        // Validate phone number input
+        if (!phone_number) {
+            return res.status(400).json({ error: 'Phone number is required' });
+        }
+
+        // Retrieve comprehensive client records
+        const comprehensiveLookup = await db.getComprehensiveLookup(phone_number);
+
+        if (!comprehensiveLookup || comprehensiveLookup.length === 0) {
+            return res.status(200).json([]);
+        }
+
+        res.status(200).json(comprehensiveLookup);
+    } catch (error) {
+        console.error('Error in comprehensive lookup:', error);
+        res.status(500).json({
+            message: 'Error performing comprehensive lookup',
+            error: error.message
+        });
+    }
+});
+
 
 
 // === CONTRACTOR ROUTES ===
 
-
-
-// Endpoint to get request data
+// Endpoint to get all requests
 app.get('/requests', async (req, res) => {
     const db = dbService.getDbServiceInstance();
-
     try {
-        const results = await db.getAllRequests(); // Use a method to fetch requests
-        res.json(results); // Send results as JSON
+        const results = await db.getAllRequests();
+        res.json(results);
     } catch (error) {
         console.error('Error fetching requests:', error);
         res.status(500).send('Error fetching data');
     }
 });
 
+// Endpoint to get all orders
+app.get('/orders', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllOrders();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
+// Endpoint to get details of a specific request by its ID
 app.get('/requests/:requestId', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     try {
@@ -136,7 +286,32 @@ app.get('/requests/:requestId', async (req, res) => {
     }
 });
 
-// Endpoint to create a quote for a request
+// Endpoint to get all bills
+app.get('/bills', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllBills();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching bills:', error);
+        res.status(500).send('Error fetching data');
+    }
+});
+
+// Endpoint to get specific bill details
+app.get('/bills/:billId', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const billId = req.params.billId;
+        const result = await db.getBillDetails(billId);
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching bill details:', error);
+        res.status(500).send('Error fetching bill details');
+    }
+});
+
+// Endpoint to create a quote for a specific request
 app.post('/quotes', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     try {
@@ -172,18 +347,19 @@ app.post('/quotes', async (req, res) => {
     }
 });
 
-// Endpoint to get quotes data
+// Endpoint to get all quotes
 app.get('/getquotes', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     try {
-        const results = await db.getAllquotes(); // Use a method to fetch quotes
-        res.json(results); // Send results as JSON
+        const results = await db.getAllquotes();
+        res.json(results);
     } catch (error) {
         console.error('Error fetching quotes:', error);
         res.status(500).send('Error fetching data');
     }
 });
 
+// Endpoint to update the status of a request by its ID
 app.patch('/requests/:requestId/status', async (req, res) => {
     const db = dbService.getDbServiceInstance();
     try {
@@ -212,7 +388,145 @@ app.patch('/requests/:requestId/status', async (req, res) => {
     }
 });
 
-// Start server
+// 1. Big Clients (most orders by David Smith)
+app.get('/clients/big-clients', (req, res) => {
+    console.log("Endpoint: Get big clients for David Smith");
+
+    const db = dbService.getDbServiceInstance();
+    db.getBigClients()
+        .then(data => {
+            console.log('Clients fetched:', data);  // Log fetched data
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching big clients:", err);
+            res.status(500).json({ error: 'Error fetching big clients' });
+        });
+});
+
+// 2. Difficult Clients
+app.get('/clients/difficult-clients', (req, res) => {
+    console.log("Endpoint: Get difficult clients");
+
+    const db = dbService.getDbServiceInstance();
+    db.getDifficultClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching difficult clients:", err);
+            res.status(500).json({ error: 'Error fetching difficult clients' });
+        });
+});
+
+// 3. This Month's Quotes (December 2024)
+app.get('/this-month-quotes', (req, res) => {
+    console.log("Endpoint: Get this month's quotes for December 2024");
+
+    const db = dbService.getDbServiceInstance();
+    db.getThisMonthQuotes()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching this month's quotes:", err);
+            res.status(500).json({ error: 'Error fetching this month\'s quotes' });
+        });
+});
+
+// 4. Prospective Clients
+app.get('/prospective-clients', (req, res) => {
+    console.log("Endpoint: Get prospective clients");
+
+    const db = dbService.getDbServiceInstance();
+    db.getProspectiveClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching prospective clients:", err);
+            res.status(500).json({ error: 'Error fetching prospective clients' });
+        });
+});
+
+// 5. Largest Driveway
+app.get('/largest-driveway', (req, res) => {
+    console.log("Endpoint: Get largest driveway");
+
+    const db = dbService.getDbServiceInstance();
+    db.getLargestDriveway()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching largest driveway:", err);
+            res.status(500).json({ error: 'Error fetching largest driveway' });
+        });
+});
+
+// 6. Overdue Bills
+app.get('/overdue-bills', (req, res) => {
+    console.log("Endpoint: Get overdue bills");
+
+    const db = dbService.getDbServiceInstance();
+    db.getOverdueBills()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching overdue bills:", err);
+            res.status(500).json({ error: 'Error fetching overdue bills' });
+        });
+});
+
+// 7. Bad Clients
+app.get('/bad-clients', (req, res) => {
+    console.log("Endpoint: Get bad clients");
+
+    const db = dbService.getDbServiceInstance();
+    db.getBadClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching bad clients:", err);
+            res.status(500).json({ error: 'Error fetching bad clients' });
+        });
+});
+
+// 8. Good Clients (paid within 24 hours)
+app.get('/good-clients', (req, res) => {
+    console.log("Endpoint: Get good clients who paid within 24 hours");
+
+    const db = dbService.getDbServiceInstance();
+    db.getGoodClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching good clients:", err);
+            res.status(500).json({ error: 'Error fetching good clients' });
+        });
+});
+
+// 9. Revenue Report (November 2024)
+app.get('/revenue-report', (req, res) => {
+    console.log("Endpoint: Get revenue report for November 2024");
+
+    const db = dbService.getDbServiceInstance();
+    db.getRevenueReport()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching revenue report:", err);
+            res.status(500).json({ error: 'Error fetching revenue report' });
+        });
+});
+
+
+
+// Start the server on port 3000
 app.listen(3000, () => {
     console.log("Server is running on port 3000.");
 });

@@ -172,42 +172,42 @@
                     <button type="submit">Search</button>
                 </form>
             </div>
-
-            <!-- Simulated Chat History Section -->
-            <div class="simulated-chat-history" id="simulatedChatHistory" style="display: none;">
-                <p>No records found for the searched address. Here's a simulated chat history:</p>
-                <p><strong>Chat 1:</strong> The request has been processed.</p>
-                <p><strong>Chat 2:</strong> Waiting for approval from management.</p>
-                <p><strong>Chat 3:</strong> The request has been completed successfully.</p>
-            </div>
-
-            <div id="requestDetailsSection" style="display: none;">
-                <h3>Request Details</h3>
-                <div id="clientInfoContainer">
-                    <p><strong>Client Name:</strong> <span id="clientNameDisplay"></span></p>
-                    <p><strong>Property Address:</strong> <span id="propertyAddressDisplay"></span></p>
-                    <p><strong>Square Feet:</strong> <span id="squareFeetDisplay"></span></p>
-                    <p><strong>Request Status:</strong> <span id="requestStatusDisplay"></span></p>
-                    <p><strong>Submission Date:</strong> <span id="submissionDateDisplay"></span></p>
+            <div id="lookupResultsContainer">
+                <!-- Simulated Chat History Section -->
+                <div class="simulated-chat-history" id="simulatedChatHistory" style="display: none;">
+                    <p>No records found for the searched address. Here's a simulated chat history:</p>
+                    <p><strong>Chat 1:</strong> The request has been processed.</p>
+                    <p><strong>Chat 2:</strong> Waiting for approval from management.</p>
+                    <p><strong>Chat 3:</strong> The request has been completed successfully.</p>
                 </div>
 
-                <div id="quoteSection" style="display: none;">
-                    <h3>Quote Details</h3>
-                    <p><strong>Total Price:</strong> <span id="quotePriceDisplay"></span></p>
-                    <p><strong>Description:</strong> <span id="quoteDescriptionDisplay"></span></p>
-                    <p><strong>Quote Status:</strong> <span id="quoteStatusDisplay"></span></p>
+                <div id="requestDetailsSection" style="display: none;">
+                    <h3>Request Details</h3>
+                    <div id="clientInfoContainer">
+                        <p><strong>Client Name:</strong> <span id="clientNameDisplay"></span></p>
+                        <p><strong>Property Address:</strong> <span id="propertyAddressDisplay"></span></p>
+                        <p><strong>Square Feet:</strong> <span id="squareFeetDisplay"></span></p>
+                        <p><strong>Request Status:</strong> <span id="requestStatusDisplay"></span></p>
+                        <p><strong>Submission Date:</strong> <span id="submissionDateDisplay"></span></p>
+                    </div>
 
-                    <div id="quoteActionButtons" style="display: none;">
-                        <button id="acceptQuoteBtn">Accept Quote</button>
-                        <button id="denyQuoteBtn">Deny Quote</button>
-                        <button id="negotiateQuoteBtn">Negotiate Quote</button>
+                    <div id="quoteSection" style="display: none;">
+                        <h3>Quote Details</h3>
+                        <p><strong>Total Price:</strong> <span id="quotePriceDisplay"></span></p>
+                        <p><strong>Description:</strong> <span id="quoteDescriptionDisplay"></span></p>
+                        <p><strong>Quote Status:</strong> <span id="quoteStatusDisplay"></span></p>
+
+                        <div id="quoteActionButtons" style="display: none;">
+                            <button id="acceptQuoteBtn">Accept Quote</button>
+                            <button id="denyQuoteBtn">Deny Quote</button>
+                            <button id="negotiateQuoteBtn">Negotiate Quote</button>
+                        </div>
                     </div>
                 </div>
+
+                <button class="back-btn" id="backToMenuFromLookup">Back to Menu</button>
             </div>
-
-            <button class="back-btn" id="backToMenuFromLookup">Back to Menu</button>
         </div>
-
         <!-- New Request Section -->
         <div class="new-request-section" id="newRequestPage">
             <h2>New Request</h2>
@@ -368,7 +368,7 @@
         });
 
 
-
+        // lookup section
         document.getElementById("lookupForm")?.addEventListener("submit", async (event) => {
             const phoneNumberInput = document.getElementById("phoneNumberLookup");
             const phoneNumber = phoneNumberInput.value.trim();
@@ -381,7 +381,7 @@
             }
 
             try {
-                const response = await fetch(`${apiBaseUrl}/lookup-status`, {
+                const response = await fetch(`${apiBaseUrl}/comprehensive-lookup`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -389,54 +389,146 @@
                     body: JSON.stringify({ phone_number: phoneNumber }),
                 });
 
-                const { data, found } = await response.json();
-                console.log('Full lookup data:', data);
-                // Hide simulated chat and reset sections
-                document.getElementById('simulatedChatHistory').style.display = 'none';
-                const requestDetailsSection = document.getElementById('requestDetailsSection');
-                const quoteSection = document.getElementById('quoteSection');
-                requestDetailsSection.style.display = 'none';
-                quoteSection.style.display = 'none';
+                const lookupData = await response.json();
+                console.log('Full lookup data:', lookupData);
 
-                if (!found) {
-                    document.getElementById('simulatedChatHistory').style.display = 'block';
+                // Clear previous results
+                const resultsContainer = document.getElementById('lookupResultsContainer');
+                resultsContainer.innerHTML = ''; // Clear previous results
+
+                if (!lookupData || lookupData.length === 0) {
+                    resultsContainer.innerHTML = '<p>No records found for this phone number.</p>';
                     return;
                 }
 
-                // Populate request details
-                const firstRecord = data[0];
-                document.getElementById('clientNameDisplay').textContent =
-                    `${firstRecord.first_name} ${firstRecord.last_name}`;
-                document.getElementById('propertyAddressDisplay').textContent =
-                    firstRecord.property_address;
-                document.getElementById('squareFeetDisplay').textContent =
-                    firstRecord.square_feet;
-                document.getElementById('requestStatusDisplay').textContent =
-                    firstRecord.status;
-                document.getElementById('submissionDateDisplay').textContent =
-                    new Date(firstRecord.submission_date).toLocaleDateString();
+                // Create comprehensive results display
+                lookupData.forEach(record => {
+                    const recordDiv = document.createElement('div');
+                    recordDiv.className = 'lookup-record';
 
-                // Show request details section
-                requestDetailsSection.style.display = 'block';
+                    // Request Basic Information
+                    recordDiv.innerHTML = `
+                    <h3>Request Details</h3>
+                    <p><strong>Request ID:</strong> ${record.request_id}</p>
+                    <p><strong>Property Address:</strong> ${record.property_address}</p>
+                    <p><strong>Square Feet:</strong> ${record.square_feet}</p>
+                    <p><strong>Submission Date:</strong> ${new Date(record.submission_date).toLocaleDateString()}</p>
+                `;
 
-                // Check if quote exists
-                if (firstRecord.quote_id) {
-                    document.getElementById('quotePriceDisplay').textContent =
-                        `$${firstRecord.proposed_price.toFixed(2)}`;
-                    document.getElementById('quoteDescriptionDisplay').textContent =
-                        firstRecord.latest_contractor_note;
-                    document.getElementById('quoteStatusDisplay').textContent =
-                        firstRecord.quote_status;
+                    // Quotes Section
+                    if (record.quotes && record.quotes.length > 0) {
+                        const quotesSection = document.createElement('div');
+                        quotesSection.innerHTML = '<h4>Quotes</h4>';
 
-                    // Set quote_id as a data attribute for later use
-                    document.getElementById('quoteStatusDisplay').dataset.quoteId = firstRecord.quote_id;
+                        record.quotes.forEach(quote => {
+                            quotesSection.innerHTML += `
+                            <div class="quote-details">
+                                <p><strong>Quote ID:</strong> ${quote.quote_id}</p>
+                                <p><strong>Initial Price:</strong> $${quote.initial_price.toFixed(2)}</p>
+                                <p><strong>Proposed Price:</strong> $${quote.proposed_price.toFixed(2)}</p>
+                                <p><strong>Work Start Date:</strong> ${new Date(quote.work_start_date).toLocaleDateString()}</p>
+                                <p><strong>Work End Date:</strong> ${new Date(quote.work_end_date).toLocaleDateString()}</p>
+                                <p><strong>Status:</strong> ${quote.status}</p>
+                                <p><strong>Latest Client Note:</strong> ${quote.latest_client_note || 'No note'}</p>
+                                <p><strong>Latest Contractor Note:</strong> ${quote.latest_contractor_note || 'No note'}</p>
+                            </div>
+                        `;
+                        });
 
-                    const quoteActionButtons = document.getElementById('quoteActionButtons');
-                    quoteActionButtons.style.display = 'block';
-                    quoteSection.style.display = 'block';
-                }
+                        recordDiv.appendChild(quotesSection);
+                    }
+
+                    // Quote Negotiations Section
+                    if (record.quote_negotiations && record.quote_negotiations.length > 0) {
+                        const negotiationsSection = document.createElement('div');
+                        negotiationsSection.innerHTML = '<h4>Quote Negotiations</h4>';
+
+                        record.quote_negotiations.forEach(negotiation => {
+                            negotiationsSection.innerHTML += `
+                            <div class="negotiation-details">
+                                <p><strong>Negotiation ID:</strong> ${negotiation.negotiation_id}</p>
+                                <p><strong>Quote ID:</strong> ${negotiation.quote_id}</p>
+                                <p><strong>Client Note:</strong> ${negotiation.client_note || 'No note'}</p>
+                                <p><strong>Contractor Note:</strong> ${negotiation.contractor_note || 'No note'}</p>
+                                <p><strong>Price Offer:</strong> $${negotiation.price_offer.toFixed(2)}</p>
+                                <p><strong>Proposed Work Start:</strong> ${new Date(negotiation.work_start_date).toLocaleDateString()}</p>
+                                <p><strong>Proposed Work End:</strong> ${new Date(negotiation.work_end_date).toLocaleDateString()}</p>
+                            </div>
+                        `;
+                        });
+
+                        recordDiv.appendChild(negotiationsSection);
+                    }
+
+                    // Orders Section
+                    if (record.orders && record.orders.length > 0) {
+                        const ordersSection = document.createElement('div');
+                        ordersSection.innerHTML = '<h4>Orders</h4>';
+
+                        record.orders.forEach(order => {
+                            ordersSection.innerHTML += `
+                            <div class="order-details">
+                                <p><strong>Order ID:</strong> ${order.order_id}</p>
+                                <p><strong>Quote ID:</strong> ${order.quote_id}</p>
+                                <p><strong>Status:</strong> ${order.status}</p>
+                                <p><strong>Order Date:</strong> ${new Date(order.order_date).toLocaleDateString()}</p>
+                            </div>
+                        `;
+                        });
+
+                        recordDiv.appendChild(ordersSection);
+                    }
+
+                    // Bills Section
+                    if (record.bills && record.bills.length > 0) {
+                        const billsSection = document.createElement('div');
+                        billsSection.innerHTML = '<h4>Bills</h4>';
+
+                        record.bills.forEach(bill => {
+                            billsSection.innerHTML += `
+                            <div class="bill-details">
+                                <p><strong>Bill ID:</strong> ${bill.bill_id}</p>
+                                <p><strong>Order ID:</strong> ${bill.order_id}</p>
+                                <p><strong>Initial Amount:</strong> $${bill.initial_amount.toFixed(2)}</p>
+                                <p><strong>Final Amount:</strong> $${bill.final_amount.toFixed(2)}</p>
+                                <p><strong>Status:</strong> ${bill.status}</p>
+                                <p><strong>Due Date:</strong> ${new Date(bill.due_date).toLocaleDateString()}</p>
+                                <p><strong>Client Note:</strong> ${bill.client_note || 'No note'}</p>
+                            </div>
+                        `;
+                        });
+
+                        recordDiv.appendChild(billsSection);
+                    }
+
+                    // Bill Negotiations Section
+                    if (record.bill_negotiations && record.bill_negotiations.length > 0) {
+                        const billNegotiationsSection = document.createElement('div');
+                        billNegotiationsSection.innerHTML = '<h4>Bill Negotiations</h4>';
+
+                        record.bill_negotiations.forEach(negotiation => {
+                            billNegotiationsSection.innerHTML += `
+                            <div class="bill-negotiation-details">
+                                <p><strong>Negotiation ID:</strong> ${negotiation.negotiation_id}</p>
+                                <p><strong>Bill ID:</strong> ${negotiation.bill_id}</p>
+                                <p><strong>Client Note:</strong> ${negotiation.client_note || 'No note'}</p>
+                                <p><strong>Contractor Note:</strong> ${negotiation.contractor_note || 'No note'}</p>
+                                <p><strong>Final Amount:</strong> $${negotiation.final_amount.toFixed(2)}</p>
+                            </div>
+                        `;
+                        });
+
+                        recordDiv.appendChild(billNegotiationsSection);
+                    }
+
+                    // Add horizontal line between records
+                    recordDiv.appendChild(document.createElement('hr'));
+
+                    // Append to results container
+                    resultsContainer.appendChild(recordDiv);
+                });
             } catch (error) {
-                console.error("Error during lookup:", error);
+                console.error("Error during comprehensive lookup:", error);
                 alert("An error occurred during the lookup");
             }
         });
@@ -446,8 +538,10 @@
         document.getElementById('denyQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Denied'));
         document.getElementById('negotiateQuoteBtn')?.addEventListener('click', () => handleQuoteAction('In Negotiation'));
 
+        // Modify the handleQuoteAction function in the existing script
         async function handleQuoteAction(action) {
             const quoteId = document.getElementById('quoteStatusDisplay').dataset.quoteId;
+            const proposedPrice = parseFloat(document.getElementById('quotePriceDisplay').textContent.replace('$', ''));
 
             try {
                 const response = await fetch(`${apiBaseUrl}/quote-action`, {
@@ -459,8 +553,32 @@
                 });
 
                 const result = await response.json();
-                alert(result.message);
 
+                // If quote is accepted, create work order
+                if (action === 'Accepted') {
+                    const workOrderResponse = await fetch(`${apiBaseUrl}/create-work-order`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            quote_id: quoteId,
+                            proposed_price: proposedPrice
+                        })
+                    });
+
+                    const workOrderResult = await workOrderResponse.json();
+
+                    // Fetch and display work order details
+                    await fetchAndDisplayWorkOrderDetails(quoteId);
+                }
+
+                // If quote is in negotiation, show negotiation form
+                if (action === 'In Negotiation') {
+                    showQuoteNegotiationForm(quoteId);
+                }
+
+                alert(result.message);
                 // Update quote status display
                 document.getElementById('quoteStatusDisplay').textContent = action;
             } catch (error) {
@@ -469,6 +587,159 @@
             }
         }
 
+        // New function to handle job completion
+        async function handleCompleteJob() {
+            const orderId = document.getElementById('quoteStatusDisplay').dataset.orderId;
+
+            try {
+                const response = await fetch(`${apiBaseUrl}/complete-work-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ order_id: orderId })
+                });
+
+                const result = await response.json();
+                alert(result.message);
+
+                // Optionally, you can update the UI to reflect job completion
+                document.getElementById('completeJobBtn').disabled = true;
+                document.getElementById('completeJobBtn').textContent = 'Job Completed';
+            } catch (error) {
+                console.error('Error completing job:', error);
+                alert('Failed to complete job');
+            }
+        }
+
+        // Function to fetch and display work order details
+        async function fetchAndDisplayWorkOrderDetails(quoteId) {
+            try {
+                const response = await fetch(`${apiBaseUrl}/get-work-order-details`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ quote_id: quoteId })
+                });
+
+                const { workOrderDetails } = await response.json();
+
+                if (workOrderDetails) {
+                    // Create or update work order details section
+                    let workOrderSection = document.getElementById('workOrderDetailsSection');
+                    if (!workOrderSection) {
+                        workOrderSection = document.createElement('div');
+                        workOrderSection.id = 'workOrderDetailsSection';
+                        document.getElementById('requestDetailsSection').appendChild(workOrderSection);
+                    }
+
+                    workOrderSection.innerHTML = `
+                    <h3>Work Order Details</h3>
+                    <p><strong>Order ID:</strong> ${workOrderDetails.order_id}</p>
+                    <p><strong>Order Status:</strong> ${workOrderDetails.order_status}</p>
+                    <p><strong>Order Date:</strong> ${new Date(workOrderDetails.order_date).toLocaleDateString()}</p>
+
+                    ${workOrderDetails.bill_id ? `
+                        <h4>Bill Details</h4>
+                        <p><strong>Bill ID:</strong> ${workOrderDetails.bill_id}</p>
+                        <p><strong>Initial Amount:</strong> $${workOrderDetails.initial_amount.toFixed(2)}</p>
+                        <p><strong>Bill Status:</strong> ${workOrderDetails.bill_status}</p>
+                        <p><strong>Due Date:</strong> ${new Date(workOrderDetails.due_date).toLocaleDateString()}</p>
+                        <p><strong>Client Note:</strong> ${workOrderDetails.bill_client_note || 'No note'}</p>
+                    ` : ''}
+                `;
+
+                    // Store order_id for later use
+                    document.getElementById('quoteStatusDisplay').dataset.orderId = workOrderDetails.order_id;
+
+                    // Update UI to show job is in progress
+                    document.getElementById('quoteActionButtons').innerHTML = `
+                    <button id="completeJobBtn">Complete Job</button>
+                `;
+
+                    // Add event listener for completing the job
+                    document.getElementById('completeJobBtn').addEventListener('click', handleCompleteJob);
+                }
+            } catch (error) {
+                console.error('Error fetching work order details:', error);
+                alert('Failed to fetch work order details');
+            }
+        }
+
+        // Function to show quote negotiation form
+        function showQuoteNegotiationForm(quoteId) {
+            // Create negotiation form
+            const negotiationFormHtml = `
+            <div id="quoteNegotiationForm">
+                <h3>Quote Negotiation</h3>
+                <form id="negotiationForm">
+                    <input type="hidden" id="negotiationQuoteId" value="${quoteId}">
+
+                    <div>
+                        <label for="clientNote">Your Note:</label>
+                        <textarea id="clientNote" required></textarea>
+                    </div>
+
+                    <div>
+                        <label for="priceOffer">Price Offer ($):</label>
+                        <input type="number" id="priceOffer" step="0.01" required>
+                    </div>
+
+                    <div>
+                        <label for="workStartDate">Proposed Work Start Date:</label>
+                        <input type="date" id="workStartDate" required>
+                    </div>
+
+                    <div>
+                        <label for="workEndDate">Proposed Work End Date:</label>
+                        <input type="date" id="workEndDate" required>
+                    </div>
+
+                    <button type="submit">Submit Negotiation</button>
+                </form>
+            </div>
+        `;
+
+            // Replace quote action buttons with negotiation form
+            document.getElementById('quoteActionButtons').innerHTML = negotiationFormHtml;
+
+            // Add event listener for negotiation form submission
+            document.getElementById('negotiationForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const negotiationData = {
+                    quote_id: quoteId,
+                    client_note: document.getElementById('clientNote').value,
+                    price_offer: parseFloat(document.getElementById('priceOffer').value),
+                    work_start_date: document.getElementById('workStartDate').value,
+                    work_end_date: document.getElementById('workEndDate').value
+                };
+
+                try {
+                    const response = await fetch(`${apiBaseUrl}/create-quote-negotiation`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(negotiationData)
+                    });
+
+                    const result = await response.json();
+                    alert(result.message);
+
+                    // Reset quote action buttons or update UI as needed
+                    document.getElementById('quoteActionButtons').innerHTML = `
+                    <button id="acceptQuoteBtn">Accept Quote</button>
+                    <button id="denyQuoteBtn">Deny Quote</button>
+                    <button id="negotiateQuoteBtn">Negotiate Quote</button>
+                `;
+                } catch (error) {
+                    console.error('Error submitting quote negotiation:', error);
+                    alert('Failed to submit quote negotiation');
+                }
+            });
+        }
 
     </script>
 
