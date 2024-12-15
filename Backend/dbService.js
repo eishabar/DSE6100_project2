@@ -349,6 +349,58 @@ async getWorkOrderDetails(quote_id) {
     });
 }
 
+async getOrderDetails(orderId) {
+    const sql = `
+        SELECT 
+            o.order_id, 
+            o.quote_id, 
+            o.status, 
+            o.order_date,
+            b.bill_id,
+            b.initial_amount,
+            b.status as bill_status,
+            b.due_date
+        FROM orders o
+        LEFT JOIN bills b ON o.order_id = b.order_id
+        WHERE o.order_id = ?
+    `;
+
+    return new Promise((resolve, reject) => {
+        connection.query(sql, [orderId], (err, results) => {
+            if (err) reject(err);
+            resolve(results[0] || null);
+        });
+    });
+}
+
+async getQuoteDetailsById(quoteId) {
+    const sql = `
+        SELECT 
+            quote_id, 
+            request_id, 
+            initial_price, 
+            proposed_price, 
+            work_start_date, 
+            work_end_date, 
+            status
+        FROM quotes
+        WHERE quote_id = ?
+    `;
+
+    return new Promise((resolve, reject) => {
+        connection.query(sql, [quoteId], (err, results) => {
+            if (err) {
+                console.error('Database query error:', err);
+                reject(err);
+            }
+            if (results.length === 0) {
+                reject(new Error('No quote found with this ID'));
+            }
+            resolve(results[0]);
+        });
+    });
+}
+
 // Create a new quote negotiation
 async createQuoteNegotiation(negotiationData) {
     const sql = `
@@ -384,6 +436,31 @@ async createQuoteNegotiation(negotiationData) {
         );
     });
 }
+
+async getNegotiationsByQuoteId(quoteId) {
+    const sql = `
+        SELECT 
+            negotiation_id, 
+            quote_id, 
+            client_note, 
+            price_offer, 
+            work_start_date, 
+            work_end_date,
+            timestamp
+        FROM quote_negotiations
+        WHERE quote_id = ?
+        ORDER BY timestamp DESC
+    `;
+
+    return new Promise((resolve, reject) => {
+        connection.query(sql, [quoteId], (err, results) => {
+            if (err) reject(err);
+            resolve(results || []);
+        });
+    });
+}
+
+
 // Move the helper functions inside the class
 static fetchQuotes(request_id) {
     return new Promise((resolve, reject) => {

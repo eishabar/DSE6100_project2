@@ -388,6 +388,95 @@ app.patch('/requests/:requestId/status', async (req, res) => {
     }
 });
 
+// Endpoint to get all quotes
+app.get('/quotesdetails', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    try {
+        const results = await db.getAllQuotes();
+        res.json(results);
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+        res.status(500).send('Error fetching quotes');
+    }
+});
+
+// Endpoint to get quote details
+app.get('/quotesdetails/:quoteId/details', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const quoteId = req.params.quoteId;
+    try {
+        const quoteDetails = await db.getQuoteDetailsById(quoteId);
+        const negotiations = await db.getNegotiationsByQuoteId(quoteId);
+        
+        console.log('Quote Details:', quoteDetails);
+        console.log('Negotiations:', negotiations);
+
+        // Combine quote details with negotiations
+        const result = {
+            ...quoteDetails,
+            negotiations: negotiations
+        };
+        
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching quote details:', error);
+        res.status(500).send('Error fetching quote details');
+    }
+});
+
+// Endpoint to update quote status
+app.patch('/quotesdetails/:quoteId/status', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const quoteId = req.params.quoteId;
+    const { status } = req.body;
+    
+    try {
+        await db.updateQuoteStatus(quoteId, status);
+        res.status(200).json({ message: 'Quote status updated successfully' });
+    } catch (error) {
+        console.error('Error updating quote status:', error);
+        res.status(500).send('Error updating quote status');
+    }
+});
+
+app.get('/orders/:orderId', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const orderId = req.params.orderId;
+    
+    try {
+        const orderDetails = await db.getOrderDetails(orderId);
+        
+        if (!orderDetails) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+        
+        res.json(orderDetails);
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        res.status(500).json({ message: 'Error fetching order details' });
+    }
+});
+
+// Endpoint to start quote negotiation
+app.post('/quotesdetails/:quoteId/negotiate', async (req, res) => {
+    const db = dbService.getDbServiceInstance();
+    const quoteId = req.params.quoteId;
+    const { proposed_price, note, from } = req.body;
+    
+    try {
+        await db.addQuoteNegotiation(quoteId, {
+            proposed_price,
+            note,
+            from,
+            timestamp: new Date()
+        });
+        res.status(201).json({ message: 'Negotiation added successfully' });
+    } catch (error) {
+        console.error('Error adding negotiation:', error);
+        res.status(500).send('Error adding negotiation');
+    }
+});
+
 // Start the server on port 3000
 app.listen(3000, () => {
     console.log("Server is running on port 3000.");

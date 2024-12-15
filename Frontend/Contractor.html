@@ -554,15 +554,8 @@ async function fetchAndDisplayQuotes() {
         const quotes = await response.json();
         const quotesTableBody = document.getElementById('quotesTableBody');
         
-        // If the element is null, throw a more specific error
-        if (!quotesTableBody) {
-            throw new Error('Could not find quotesTableBody element. Check your HTML structure.');
-        }
-
-        // Clear the existing table body
         quotesTableBody.innerHTML = '';
 
-        // Populate the table with the fetched data
         quotes.forEach(quote => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -575,23 +568,190 @@ async function fetchAndDisplayQuotes() {
                 <td>${quote.status}</td>
                 <td>
                     <button class="action" onclick="openModal('quoteDetails', ${quote.quote_id})">Details</button>
-                    <button class="action" onclick="startNegotiation(${quote.quote_id})">Negotiate</button>
+                    ${quote.status === 'Pending' ? `
+                        <button class="action" onclick="acceptQuote(${quote.quote_id})">Accept</button>
+                        <button class="action" style="background-color: #dc3545;" onclick="denyQuote(${quote.quote_id})">Deny</button>
+                    ` : ''}
+                    ${quote.status === 'In Negotiation' ? `
+                        <button class="action" onclick="startNegotiation(${quote.quote_id})">Respond to Negotiation</button>
+                    ` : ''}
                 </td>
             `;
             quotesTableBody.appendChild(row);
         });
     } catch (error) {
         console.error('Error fetching and displaying quotes:', error);
-        // Fallback error handling
         const errorContainer = document.querySelector('#quotes table tbody');
         if (errorContainer) {
             errorContainer.innerHTML = `<tr><td colspan="8">Error loading quotes: ${error.message}</td></tr>`;
-        } else {
-            console.error('Could not find a place to display the error message');
         }
     }
 }
 
+async function fetchQuoteDetails(quoteId) {
+    try {
+        const response = await fetch(`http://localhost:3000/quotesdetails/${quoteId}/details`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch quote details');
+        }
+        const details = await response.json();
+        
+        // Populate modal with quote details and negotiations
+        const quoteDetailsContent = document.querySelector('#quoteDetails .modal-content');
+        
+        // Quote Details
+        let detailsHTML = `
+            <h3>Quote Details</h3>
+            <p><strong>Quote ID:</strong> ${details.quote_id}</p>
+            <p><strong>Request ID:</strong> ${details.request_id}</p>
+            <p><strong>Initial Price:</strong> $${parseFloat(details.initial_price).toFixed(2)}</p>
+            <p><strong>Proposed Price:</strong> $${parseFloat(details.proposed_price).toFixed(2)}</p>
+            <p><strong>Work Start Date:</strong> ${details.work_start_date || 'N/A'}</p>
+            <p><strong>Work End Date:</strong> ${details.work_end_date || 'N/A'}</p>
+            <p><strong>Status:</strong> ${details.status}</p>
+        `;
+        
+        // Negotiations
+        if (details.negotiations && details.negotiations.length > 0) {
+            detailsHTML += `
+                <h3>Negotiations</h3>
+                <div class="negotiations-list">
+                    ${details.negotiations.map(negotiation => `
+                        <div class="negotiation-item">
+                            <p><strong>From:</strong> ${negotiation.from}</p>
+                            <p><strong>Date:</strong> ${new Date(negotiation.timestamp).toLocaleString()}</p>
+                            <p><strong>Proposed Price:</strong> $${parseFloat(negotiation.proposed_price).toFixed(2)}</p>
+                            <p><strong>Note:</strong> ${negotiation.note}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        quoteDetailsContent.innerHTML = detailsHTML;
+    } catch (error) {
+        console.error('Error loading quote details:', error);
+        const quoteDetailsContent = document.querySelector('#quoteDetails .modal-content');
+        quoteDetailsContent.innerHTML = 
+            `<p>Error loading details: ${error.message}</p>`;
+    }
+}
+
+// Accept Quote and Create Work Order
+async function acceptQuote(quoteId) {
+    try {
+        // Update quote status to accepted
+        const quoteResponse = await fetch(`http://localhost:3000/quotesdetails/${quoteId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: 'Accepted' })
+        });
+
+        if (!quoteResponse.ok) {
+            throw new Error('Failed to update quote status');
+        }
+
+        // Create work order
+        const orderResponse = await fetch('http://localhost:3000/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                quote_id: quoteId, 
+                status: 'In Progress' 
+            })
+        });
+
+        if (!orderResponse.ok) {
+            throw new Error('Failed to create work order');
+        }
+
+        // Refresh quotes and orders tables
+        fetchAndDisplayQuotes();
+        fetchAndDisplayOrders();
+
+        alert('Quote accepted and work order created successfully!');
+    } catch (error) {
+        console.error('Error accepting quote:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// Deny Quote
+async function denyQuote(quoteId) {
+    try {
+        const response = await fetch(`http://localhost:3000/quotesdetails/${quoteId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: 'Denied' })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update quote status');
+        }
+
+        // Refresh quotes table
+        fetchAndDisplayQuotes();
+
+        alert('Quote denied successfully');
+    } catch (error) {
+        console.error('Error denying quote:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+// Start Negotiation
+async function startNegotiation(quoteId) {
+    // Prompt for negotiation details
+    const proposedPrice = prompt('Enter your proposed price:');
+    const negotiationNote = prompt('Add any notes for negotiation:');
+
+    if (proposedPrice) {
+        try {
+            const response = await fetch(`http://localhost:3000/quotesdetails/${quoteId}/negotiate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    proposed_price: parseFloat(proposedPrice),
+                    note: negotiationNote || '',
+                    from: 'Contractor' // You might want to dynamically set this
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to submit negotiation');
+            }
+
+            // Update quote status to In Negotiation
+            const statusResponse = await fetch(`http://localhost:3000/quotesdetails/${quoteId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: 'In Negotiation' })
+            });
+
+            if (!statusResponse.ok) {
+                throw new Error('Failed to update quote status');
+            }
+
+            // Refresh quotes table
+            fetchAndDisplayQuotes();
+
+            alert('Negotiation submitted successfully');
+        } catch (error) {
+            console.error('Error during negotiation:', error);
+            alert(`Error: ${error.message}`);
+        }
+    }
+}
 // Fetch and display orders
 async function fetchAndDisplayOrders() {
     try {
@@ -759,6 +919,8 @@ function openModal(modalType, itemId) {
             case 'requestDetails':
                 fetchRequestDetails(itemId);
                 break;
+            case 'quoteDetails':
+                fetchQuoteDetails(itemId);
             case 'orderDetails':
                 fetchOrderDetails(itemId);
                 break;
