@@ -600,6 +600,234 @@ async getComprehensiveLookup(phone_number) {
         );
     });
 }
+
+
+ // === Reports Queries ===
+
+    // Query for Big Clients (most orders by David Smith)
+    getBigClients() {
+        const sql = `
+        SELECT 
+            c.client_id, 
+            CONCAT(c.first_name, ' ', c.last_name) AS client_name, 
+            COUNT(o.order_id) AS total_orders
+        FROM 
+            Clients c
+        JOIN 
+            Requests r ON c.client_id = r.client_id
+        JOIN 
+            Quotes q ON r.request_id = q.request_id
+        JOIN 
+            Orders o ON q.quote_id = o.quote_id
+        GROUP BY 
+            c.client_id
+        ORDER BY 
+            total_orders DESC
+        LIMIT 1;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, results) => {
+                if (err) reject(err);
+                resolve(results);
+            });
+        });
+    }
+
+    // Query for Difficult Clients
+    getDifficultClients() {
+        const sql = `
+        SELECT 
+            c.client_id, 
+            CONCAT(c.first_name, ' ', c.last_name) AS client_name
+        FROM 
+            Clients c
+        JOIN 
+            Requests r ON c.client_id = r.client_id
+        LEFT JOIN 
+            Quotes q ON r.request_id = q.request_id
+        WHERE 
+            q.request_id IS NULL
+        GROUP BY 
+            c.client_id
+        HAVING 
+            COUNT(DISTINCT r.request_id) >= 3;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Query for This Month's Quotes (December 2024)
+    getThisMonthQuotes() {
+        const sql = `
+        SELECT 
+            q.quote_id, 
+            r.property_address, 
+            q.initial_price, 
+            q.proposed_price, 
+            q.status, 
+            q.timestamp
+        FROM 
+            Quotes q
+        JOIN 
+            Requests r ON q.request_id = r.request_id
+        WHERE 
+            MONTH(q.timestamp) = 12
+            AND YEAR(q.timestamp) = 2024;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Query for Prospective Clients
+    getProspectiveClients() {
+        const sql = `
+        SELECT 
+            c.client_id, 
+            CONCAT(c.first_name, ' ', c.last_name) AS client_name
+        FROM 
+            Clients c
+        LEFT JOIN 
+            Requests r ON c.client_id = r.client_id
+        WHERE 
+            r.request_id IS NULL;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Query for Largest Driveway
+    getLargestDriveway() {
+        const sql = `
+        SELECT 
+            r.property_address, 
+            MAX(r.square_feet) AS largest_square_feet
+        FROM 
+            Requests r
+        JOIN 
+            Quotes q ON r.request_id = q.request_id
+        JOIN 
+            Orders o ON q.quote_id = o.quote_id
+        GROUP BY 
+            r.property_address
+        ORDER BY 
+            largest_square_feet DESC
+        LIMIT 1;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Query for Overdue Bills
+    getOverdueBills() {
+        const sql = `
+        SELECT 
+            b.bill_id, 
+            b.due_date, 
+            b.status, 
+            TIMESTAMPDIFF(DAY, b.due_date, CURRENT_DATE()) AS overdue_days
+        FROM 
+            Bills b
+        WHERE 
+            b.due_date < CURRENT_DATE() - INTERVAL 7 DAY;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Query for Bad Clients
+    getBadClients() {
+        const sql = `
+        SELECT 
+            c.client_id, 
+            CONCAT(c.first_name, ' ', c.last_name) AS client_name
+        FROM 
+            Clients c
+        JOIN 
+            Requests r ON c.client_id = r.client_id
+        JOIN 
+            Quotes q ON r.request_id = q.request_id
+        JOIN 
+            Orders o ON q.quote_id = o.quote_id
+        JOIN 
+            Bills b ON o.order_id = b.order_id
+        WHERE 
+            b.due_date < CURRENT_DATE() 
+        GROUP BY 
+            c.client_id;
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Query for Good Clients (paid within 24 hours)
+    getGoodClients() {
+        const sql = `
+        SELECT 
+            c.client_id, 
+            CONCAT(c.first_name, ' ', c.last_name) AS client_name
+        FROM 
+            Clients c
+        JOIN 
+            Requests r ON c.client_id = r.client_id
+        JOIN 
+            Quotes q ON r.request_id = q.request_id
+        JOIN 
+            Orders o ON q.quote_id = o.quote_id
+        JOIN 
+            Bills b ON o.order_id = b.order_id
+        WHERE 
+            b.status = 'PAID'
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
+    // Revenue Report Query
+    getRevenueReport() {
+        const sql = `
+        SELECT
+            SUM(final_amount) AS total_revenue
+        FROM
+            Bills
+        WHERE
+            status = 'Paid';
+    `;
+        return new Promise((resolve, reject) => {
+            connection.query(sql, (err, result) => {
+                if (err) reject(err);
+                resolve(result);
+            });
+        });
+    }
+
 }
 
 // Export the DbService class

@@ -196,16 +196,15 @@
                     <p><strong>Description:</strong> <span id="quoteDescriptionDisplay"></span></p>
                     <p><strong>Quote Status:</strong> <span id="quoteStatusDisplay"></span></p>
                     
-                    <div id="quoteActionButtons" style="display: none;">
+                    <div id="quoteActionButtons" >
                         <button id="acceptQuoteBtn">Accept Quote</button>
                         <button id="denyQuoteBtn">Deny Quote</button>
                         <button id="negotiateQuoteBtn">Negotiate Quote</button>
                     </div>
                 </div>
+            </div>    
             </div>
-
             <button class="back-btn" id="backToMenuFromLookup">Back to Menu</button>
-        </div>
         </div>
         <!-- New Request Section -->
         <div class="new-request-section" id="newRequestPage">
@@ -389,11 +388,10 @@ document.getElementById("lookupForm")?.addEventListener("submit", async (event) 
         });
 
         const lookupData = await response.json();
-        console.log('Full lookup data:', lookupData);
 
         // Clear previous results
         const resultsContainer = document.getElementById('lookupResultsContainer');
-        resultsContainer.innerHTML = ''; // Clear previous results
+        resultsContainer.innerHTML = ''; 
 
         if (!lookupData || lookupData.length === 0) {
             resultsContainer.innerHTML = '<p>No records found for this phone number.</p>';
@@ -414,24 +412,56 @@ document.getElementById("lookupForm")?.addEventListener("submit", async (event) 
                 <p><strong>Submission Date:</strong> ${new Date(record.submission_date).toLocaleDateString()}</p>
             `;
 
-            // Quotes Section
+           // Quotes Section
             if (record.quotes && record.quotes.length > 0) {
                 const quotesSection = document.createElement('div');
                 quotesSection.innerHTML = '<h4>Quotes</h4>';
                 
                 record.quotes.forEach(quote => {
-                    quotesSection.innerHTML += `
-                        <div class="quote-details">
-                            <p><strong>Quote ID:</strong> ${quote.quote_id}</p>
-                            <p><strong>Initial Price:</strong> $${quote.initial_price.toFixed(2)}</p>
-                            <p><strong>Proposed Price:</strong> $${quote.proposed_price.toFixed(2)}</p>
-                            <p><strong>Work Start Date:</strong> ${new Date(quote.work_start_date).toLocaleDateString()}</p>
-                            <p><strong>Work End Date:</strong> ${new Date(quote.work_end_date).toLocaleDateString()}</p>
-                            <p><strong>Status:</strong> ${quote.status}</p>
-                            <p><strong>Latest Client Note:</strong> ${quote.latest_client_note || 'No note'}</p>
-                            <p><strong>Latest Contractor Note:</strong> ${quote.latest_contractor_note || 'No note'}</p>
-                        </div>
+                    const quoteDetailsDiv = document.createElement('div');
+                    quoteDetailsDiv.className = 'quote-details';
+                    quoteDetailsDiv.innerHTML = `
+                        <p><strong>Quote ID:</strong> ${quote.quote_id}</p>
+                        <p><strong>Initial Price:</strong> $${quote.initial_price.toFixed(2)}</p>
+                        <p><strong>Proposed Price:</strong> $${quote.proposed_price.toFixed(2)}</p>
+                        <p><strong>Work Start Date:</strong> ${new Date(quote.work_start_date).toLocaleDateString()}</p>
+                        <p><strong>Work End Date:</strong> ${new Date(quote.work_end_date).toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> ${quote.status}</p>
+                        <p><strong>Latest Client Note:</strong> ${quote.latest_client_note || 'No note'}</p>
+                        <p><strong>Latest Contractor Note:</strong> ${quote.latest_contractor_note || 'No note'}</p>
                     `;
+
+                    // Add quote action buttons only if status is 'Pending'
+                
+                        const quoteActionDiv = document.createElement('div');
+                        quoteActionDiv.className = 'quote-action-buttons';
+                        quoteActionDiv.innerHTML = `
+                            <button class="accept-quote-btn" data-quote-id="${quote.quote_id}">Accept Quote</button>
+                            <button class="deny-quote-btn" data-quote-id="${quote.quote_id}">Deny Quote</button>
+                            <button class="negotiate-quote-btn" data-quote-id="${quote.quote_id}">Negotiate Quote</button>
+                        `;
+
+                        // Add event listeners
+                        quoteActionDiv.querySelector('.accept-quote-btn').addEventListener('click', (event) => {
+                            const quoteId = event.target.getAttribute('data-quote-id');
+                            handleQuoteAction('Accepted', quoteId);
+                        });
+
+                        quoteActionDiv.querySelector('.deny-quote-btn').addEventListener('click', (event) => {
+                            const quoteId = event.target.getAttribute('data-quote-id');
+                            handleQuoteAction('Denied', quoteId);
+                        });
+
+                        quoteActionDiv.querySelector('.negotiate-quote-btn').addEventListener('click', (event) => {
+                            const quoteId = event.target.getAttribute('data-quote-id');
+                            handleQuoteAction('In Negotiation', quoteId);
+                            showQuoteNegotiationForm(quoteId);
+                        });
+
+                        quoteDetailsDiv.appendChild(quoteActionDiv);
+                    
+
+                    quotesSection.appendChild(quoteDetailsDiv);
                 });
                 
                 recordDiv.appendChild(quotesSection);
@@ -532,59 +562,29 @@ document.getElementById("lookupForm")?.addEventListener("submit", async (event) 
     }
 });
 
-// Quote action event listeners
-document.getElementById('acceptQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Accepted'));
-document.getElementById('denyQuoteBtn')?.addEventListener('click', () => handleQuoteAction('Denied'));
-document.getElementById('negotiateQuoteBtn')?.addEventListener('click', () => handleQuoteAction('In Negotiation'));
-
-// Modify the handleQuoteAction function in the existing script
-async function handleQuoteAction(action) {
-    const quoteId = document.getElementById('quoteStatusDisplay').dataset.quoteId;
-    const proposedPrice = parseFloat(document.getElementById('quotePriceDisplay').textContent.replace('$', ''));
-
+// Centralized quote action handling
+async function handleQuoteAction(action, quoteId) {
     try {
+        console.log('Sending quote action:', { quoteId, action }); 
         const response = await fetch(`${apiBaseUrl}/quote-action`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ quote_id: quoteId, action })
         });
 
+        if (!response.ok) {
+            throw new Error(`Failed to ${action.toLowerCase()} quote`);
+        }
+
         const result = await response.json();
-        
-        // If quote is accepted, create work order
-        if (action === 'Accepted') {
-            const workOrderResponse = await fetch(`${apiBaseUrl}/create-work-order`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    quote_id: quoteId, 
-                    proposed_price: proposedPrice 
-                })
-            });
-
-            const workOrderResult = await workOrderResponse.json();
-            
-            // Fetch and display work order details
-            await fetchAndDisplayWorkOrderDetails(quoteId);
-        }
-
-        // If quote is in negotiation, show negotiation form
-        if (action === 'In Negotiation') {
-            showQuoteNegotiationForm(quoteId);
-        }
-
-        alert(result.message);
-        // Update quote status display
-        document.getElementById('quoteStatusDisplay').textContent = action;
+        alert(`Quote ${action.toLowerCase()} successfully`);
+        // Optionally, refresh the lookup results or update UI
     } catch (error) {
-        console.error('Error processing quote action:', error);
-        alert('Failed to process quote action');
+        console.error(`Quote action error:`, error);
+        alert(error.message);
     }
 }
+
 
 // New function to handle job completion
 async function handleCompleteJob() {
@@ -668,6 +668,16 @@ async function fetchAndDisplayWorkOrderDetails(quoteId) {
 
 // Function to show quote negotiation form
 function showQuoteNegotiationForm(quoteId) {
+    console.log('showQuoteNegotiationForm called with quoteId:', quoteId);
+
+    // Find the closest parent quote details div
+    const quoteDetailsDiv = event.target.closest('.quote-details');
+    
+    if (!quoteDetailsDiv) {
+        console.error('Could not find quote details container');
+        return;
+    }
+
     // Create negotiation form
     const negotiationFormHtml = `
         <div id="quoteNegotiationForm">
@@ -700,46 +710,56 @@ function showQuoteNegotiationForm(quoteId) {
         </div>
     `;
 
-    // Replace quote action buttons with negotiation form
-    document.getElementById('quoteActionButtons').innerHTML = negotiationFormHtml;
+    // Find or create quote action buttons container
+    let quoteActionButtonsContainer = quoteDetailsDiv.querySelector('.quote-action-buttons');
+    
+    if (quoteActionButtonsContainer) {
+        quoteActionButtonsContainer.innerHTML = negotiationFormHtml;
+    } else {
+        console.error('Quote action buttons container not found');
+        return;
+    }
 
     // Add event listener for negotiation form submission
-    document.getElementById('negotiationForm').addEventListener('submit', async (event) => {
-        event.preventDefault();
+    const negotiationForm = quoteActionButtonsContainer.querySelector('#negotiationForm');
+    
+    if (negotiationForm) {
+        negotiationForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-        const negotiationData = {
-            quote_id: quoteId,
-            client_note: document.getElementById('clientNote').value,
-            price_offer: parseFloat(document.getElementById('priceOffer').value),
-            work_start_date: document.getElementById('workStartDate').value,
-            work_end_date: document.getElementById('workEndDate').value
-        };
+            const negotiationData = {
+                quote_id: quoteId,
+                client_note: negotiationForm.querySelector('#clientNote').value,
+                price_offer: parseFloat(negotiationForm.querySelector('#priceOffer').value),
+                work_start_date: negotiationForm.querySelector('#workStartDate').value,
+                work_end_date: negotiationForm.querySelector('#workEndDate').value
+            };
 
-        try {
-            const response = await fetch(`${apiBaseUrl}/create-quote-negotiation`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(negotiationData)
-            });
+            try {
+                const response = await fetch(`${apiBaseUrl}/create-quote-negotiation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(negotiationData)
+                });
 
-            const result = await response.json();
-            alert(result.message);
+                const result = await response.json();
+                alert(result.message);
 
-            // Reset quote action buttons or update UI as needed
-            document.getElementById('quoteActionButtons').innerHTML = `
-                <button id="acceptQuoteBtn">Accept Quote</button>
-                <button id="denyQuoteBtn">Deny Quote</button>
-                <button id="negotiateQuoteBtn">Negotiate Quote</button>
-            `;
-        } catch (error) {
-            console.error('Error submitting quote negotiation:', error);
-            alert('Failed to submit quote negotiation');
-        }
-    });
+                // Restore original quote action buttons
+                quoteActionButtonsContainer.innerHTML = `
+                    <button class="accept-quote-btn" data-quote-id="${quoteId}">Accept Quote</button>
+                    <button class="deny-quote-btn" data-quote-id="${quoteId}">Deny Quote</button>
+                    <button class="negotiate-quote-btn" data-quote-id="${quoteId}">Negotiate Quote</button>
+                `;
+            } catch (error) {
+                console.error('Error submitting quote negotiation:', error);
+                alert('Failed to submit quote negotiation');
+            }
+        });
+    }
 }
-
 </script>
 
 </body>

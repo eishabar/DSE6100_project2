@@ -477,6 +477,144 @@ app.post('/quotesdetails/:quoteId/negotiate', async (req, res) => {
     }
 });
 
+// 1. Big Clients (most orders by David Smith)
+app.get('/clients/big-clients', (req, res) => {
+    console.log("Endpoint: Get big clients for David Smith");
+
+    const db = dbService.getDbServiceInstance();
+    db.getBigClients()
+        .then(data => {
+            console.log('Clients fetched:', data);  // Log fetched data
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching big clients:", err);
+            res.status(500).json({ error: 'Error fetching big clients' });
+        });
+});
+
+// 2. Difficult Clients
+app.get('/clients/difficult-clients', (req, res) => {
+    console.log("Endpoint: Get difficult clients");
+
+    const db = dbService.getDbServiceInstance();
+    db.getDifficultClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching difficult clients:", err);
+            res.status(500).json({ error: 'Error fetching difficult clients' });
+        });
+});
+
+// 3. This Month's Quotes (December 2024)
+app.get('/this-month-quotes', (req, res) => {
+    console.log("Endpoint: Get this month's quotes for December 2024");
+
+    const db = dbService.getDbServiceInstance();
+    db.getThisMonthQuotes()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching this month's quotes:", err);
+            res.status(500).json({ error: 'Error fetching this month\'s quotes' });
+        });
+});
+
+// 4. Prospective Clients
+app.get('/prospective-clients', (req, res) => {
+    console.log("Endpoint: Get prospective clients");
+
+    const db = dbService.getDbServiceInstance();
+    db.getProspectiveClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching prospective clients:", err);
+            res.status(500).json({ error: 'Error fetching prospective clients' });
+        });
+});
+
+// 5. Largest Driveway
+app.get('/largest-driveway', (req, res) => {
+    console.log("Endpoint: Get largest driveway");
+
+    const db = dbService.getDbServiceInstance();
+    db.getLargestDriveway()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching largest driveway:", err);
+            res.status(500).json({ error: 'Error fetching largest driveway' });
+        });
+});
+
+// 6. Overdue Bills
+app.get('/overdue-bills', (req, res) => {
+    console.log("Endpoint: Get overdue bills");
+
+    const db = dbService.getDbServiceInstance();
+    db.getOverdueBills()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching overdue bills:", err);
+            res.status(500).json({ error: 'Error fetching overdue bills' });
+        });
+});
+
+// 7. Bad Clients
+app.get('/bad-clients', (req, res) => {
+    console.log("Endpoint: Get bad clients");
+
+    const db = dbService.getDbServiceInstance();
+    db.getBadClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching bad clients:", err);
+            res.status(500).json({ error: 'Error fetching bad clients' });
+        });
+});
+
+// 8. Good Clients (paid within 24 hours)
+app.get('/good-clients', (req, res) => {
+    console.log("Endpoint: Get good clients who paid within 24 hours");
+
+    const db = dbService.getDbServiceInstance();
+    db.getGoodClients()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching good clients:", err);
+            res.status(500).json({ error: 'Error fetching good clients' });
+        });
+});
+
+// 9. Revenue Report (November 2024)
+app.get('/revenue-report', (req, res) => {
+    console.log("Endpoint: Get revenue report for November 2024");
+
+    const db = dbService.getDbServiceInstance();
+    db.getRevenueReport()
+        .then(data => {
+            res.status(200).json(data);
+        })
+        .catch(err => {
+            console.log("Error fetching revenue report:", err);
+            res.status(500).json({ error: 'Error fetching revenue report' });
+        });
+});
+
+
+
 // Start the server on port 3000
 app.listen(3000, () => {
     console.log("Server is running on port 3000.");
