@@ -1,5 +1,54 @@
 # DSE6100_project2
 
+## Project Credits
+1. **Key Contributors**:
+   - Eisha Akbar
+   - Fatima Daher
+
+2. **Division of Tasks**:
+   - Both took turns working on Frontend and Backends
+        - For example, Eisha set-up the Backend for Client Registration and Frontend; Fatima completed the Registration, then Eisha tookover to work on the Reports section. Each member took turn and worked in parall.
+    - Total Time spent: 1 month 4 days
+
+## How to Run the Given Code
+
+To get the project working, follow these steps:
+
+1. **Install XAMPP and Create Project Directory**:
+   - In your file system, find xampp folder then within htdocs folder fetch the Github code from this repository.
+
+2. **Set Up Backend**:
+   - Use the provided sql `.txt` file or refer to step 7 and run the commands in sql server to create tables.
+
+3. **Initialize Backend**:
+   ```bash
+   cd Backend
+   npm init -y
+   npm install express mysql cors nodemon
+   ```
+
+4. **Modify Backend Scripts**:
+   - Open the `Backend/package.json` file and modify the scripts section as follows:
+   ```json
+   "scripts": {
+       "test": "echo "Error: no test specified" && exit 1",
+       "start": "nodemon server.js"
+   }
+   ```
+
+5. **Start the Backend**:
+   - Run the following commands to start the backend server:
+   ```bash
+   cd Backend
+   npm start
+   ```
+   
+6. **Access the Frontend**:
+    -Now you can access the html url. For example, you can point your browser to:
+        -http://localhost/DSE6100_project2/Frontend/Client.html
+        -http://localhost/DSE6100_project2/Frontend/Contractor.html
+       
+7. **SQL Queries to Set-Up DB**:
 -- Clients
 CREATE TABLE Clients (
     client_id INT AUTO_INCREMENT PRIMARY KEY,
