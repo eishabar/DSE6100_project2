@@ -9,6 +9,7 @@
    - Both took turns working on Frontend and Backends
         - For example, Eisha set-up the Backend for Client Registration and Frontend; Fatima completed the Registration, then Eisha tookover to work on the Reports section. Each member took turn and worked in parall.
     - Total Time spent: 1 month 4 days
+    - Total Collabration Time: 288 hours
 
 ## How to Run the Given Code
 
